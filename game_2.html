@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Aventicum Quest — Operatio Aquila</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root {
+  --bg: #1a0f02;
+  --gold: #c9a84c;
+  --gold2: #d4a017;
+  --cream: #faf7f0;
+  --red: #c0392b;
+  --dark-panel: #120a01;
+  --panel: #231508;
+  --panel2: #2d1b08;
+  --border: rgba(201,168,76,0.4);
+  --border-strong: rgba(201,168,76,0.8);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--cream);
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 18px;
+  overflow: hidden;
+}
+
+/* ─── CANVAS PARTICLES ─── */
+#particleCanvas {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── VIGNETTE ─── */
+#vignette {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 2;
+  box-shadow:
+    inset 0 0 90px rgba(0,0,0,0.7),
+    inset 0 0 40px rgba(0,0,0,0.45),
+    inset 0 0 15px rgba(0,0,0,0.3);
+}
+
+/* ─── EDGE GLOW ─── */
+#edgeGlow {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse at top, rgba(201,168,76,0.1) 0%, transparent 55%),
+    radial-gradient(ellipse at bottom, rgba(212,160,23,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at left, rgba(201,168,76,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at right, rgba(212,160,23,0.06) 0%, transparent 50%);
+  animation: edgePulse 4s ease-in-out infinite alternate;
+}
+@keyframes edgePulse {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+
+/* ─── SCAN LINE ─── */
+#scanLine {
+  position: fixed; top: 0; left: -40%;
+  width: 40%; height: 100%;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(201,168,76,0.03) 30%,
+    rgba(201,168,76,0.07) 50%,
+    rgba(201,168,76,0.03) 70%,
+    transparent 100%);
+  pointer-events: none; z-index: 3;
+  opacity: 0;
+}
+@keyframes scanSweep {
+  0%   { left: -40%; opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+/* ─── SCREENS ─── */
+.screen {
+  position: fixed; inset: 0;
+  z-index: 10;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  overflow-y: auto; overflow-x: hidden;
+  opacity: 0;
+  transform: scale(1.04);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+  pointer-events: none;
+}
+.screen.active {
+  opacity: 1; transform: scale(1);
+  pointer-events: all;
+}
+.screen.exit {
+  opacity: 0; transform: scale(0.97);
+  pointer-events: none;
+}
+
+/* ─── TYPOGRAPHY ─── */
+h1, h2, h3, .cinzel { font-family: 'Cinzel', serif; }
+
+.title-main {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2rem, 6vw, 3.6rem);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  text-shadow: 0 0 30px rgba(201,168,76,0.6), 0 0 60px rgba(201,168,76,0.3);
+  text-align: center;
+}
+.title-sub {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  font-style: italic;
+  color: var(--gold2);
+  letter-spacing: 0.18em;
+  text-align: center;
+  opacity: 0.85;
+}
+.title-tagline {
+  font-family: 'Crimson Text', serif;
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  font-style: italic;
+  color: rgba(250,247,240,0.7);
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+/* ─── SEPARATORS ─── */
+.sep {
+  width: min(360px, 80vw); height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin: 1rem auto;
+}
+.sep-sm { width: min(200px, 60vw); }
+
+/* ─── PANELS / CARDS ─── */
+.card {
+  background: rgba(35,21,8,0.85);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.5rem;
+  backdrop-filter: blur(4px);
+}
+.card-dark {
+  background: rgba(18,10,1,0.9);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.2rem;
+}
+
+/* ─── INPUTS ─── */
+.input-field {
+  width: 100%;
+  background: rgba(18,10,1,0.8);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.85rem 1.1rem;
+  color: var(--cream);
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  text-align: center;
+}
+.input-field:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 16px rgba(201,168,76,0.25);
+}
+.input-field::placeholder { color: rgba(250,247,240,0.35); letter-spacing: 0.05em; }
+
+/* ─── BUTTONS ─── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0.85rem 2rem;
+  border-radius: 4px;
+  border: 1px solid var(--gold);
+  background: linear-gradient(135deg, rgba(201,168,76,0.15), rgba(212,160,23,0.08));
+  color: var(--gold);
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+}
+.btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(201,168,76,0.3), rgba(212,160,23,0.15));
+  opacity: 0; transition: opacity 0.25s;
+}
+.btn:hover::before { opacity: 1; }
+.btn:hover { box-shadow: 0 0 20px rgba(201,168,76,0.4); transform: translateY(-1px); }
+.btn:active { transform: translateY(0) scale(0.98); }
+
+.btn-primary {
+  background: linear-gradient(135deg, rgba(201,168,76,0.25), rgba(212,160,23,0.15));
+  border-color: var(--gold2);
+  font-size: 1rem;
+  padding: 1rem 2.5rem;
+}
+.btn-sm {
+  font-size: 0.75rem;
+  padding: 0.5rem 1rem;
+  opacity: 0.7;
+  border-color: rgba(201,168,76,0.4);
+}
+.btn-sm:hover { opacity: 1; }
+.btn-danger { border-color: rgba(192,57,43,0.6); color: #e74c3c; }
+.btn-support {
+  border-color: rgba(201,168,76,0.35);
+  color: rgba(201,168,76,0.7);
+  text-decoration: none;
+}
+
+/* ─── SEAL ANIMATION ─── */
+@keyframes sealStamp {
+  0%   { transform: scale(1.4) rotate(-8deg); opacity: 0; }
+  50%  { transform: scale(0.95) rotate(2deg); opacity: 1; }
+  75%  { transform: scale(1.02) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.seal-anim { animation: sealStamp 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+/* ─── SHAKE ─── */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  15%  { transform: translateX(-8px); }
+  30%  { transform: translateX(8px); }
+  45%  { transform: translateX(-6px); }
+  60%  { transform: translateX(6px); }
+  75%  { transform: translateX(-3px); }
+  90%  { transform: translateX(3px); }
+}
+.shaking { animation: shake 0.5s ease; }
+
+/* ─── FLASH ─── */
+@keyframes flashGold {
+  0%   { opacity: 0; }
+  30%  { opacity: 0.7; }
+  100% { opacity: 0; }
+}
+#flashOverlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: radial-gradient(ellipse, rgba(212,160,23,0.8) 0%, rgba(201,168,76,0.2) 60%, transparent 100%);
+  pointer-events: none; opacity: 0;
+}
+#flashOverlay.flashing { animation: flashGold 0.6s ease forwards; }
+
+/* ─── HUD ─── */
+#hud {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 50;
+  background: linear-gradient(180deg, rgba(18,10,1,0.97) 0%, rgba(18,10,1,0.7) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  display: none;
+  flex-direction: column; gap: 0.3rem;
+}
+.hud-row {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.hud-logo {
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem; font-weight: 700;
+  color: var(--gold); letter-spacing: 0.1em;
+  line-height: 1.2;
+}
+.hud-logo span { display: block; font-size: 0.55rem; opacity: 0.7; letter-spacing: 0.15em; }
+.hud-score {
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem; font-weight: 600;
+  color: var(--gold2); letter-spacing: 0.05em;
+  text-align: right; line-height: 1.2;
+}
+.hud-score small { display: block; font-size: 0.6rem; opacity: 0.6; }
+
+/* ─── Progress bar ─── */
+.progress-bar-wrap {
+  height: 4px; background: rgba(201,168,76,0.1);
+  border-radius: 2px; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold2), var(--gold));
+  transition: width 0.6s ease;
+  box-shadow: 0 0 8px var(--gold2);
+  border-radius: 2px;
+}
+
+/* ─── INVENTORY ─── */
+#inventory {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  z-index: 50;
+  background: linear-gradient(0deg, rgba(18,10,1,0.97) 0%, rgba(18,10,1,0.7) 100%);
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 0.8rem;
+  display: none; gap: 0.3rem; flex-direction: column;
+}
+.inv-label {
+  font-family: 'Cinzel', serif; font-size: 0.55rem;
+  letter-spacing: 0.2em; color: rgba(201,168,76,0.6);
+  text-align: center;
+}
+.inv-fragments {
+  display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap;
+  align-items: center;
+}
+.inv-slot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: rgba(201,168,76,0.15);
+  border: 1px solid rgba(201,168,76,0.3);
+  transition: all 0.5s;
+  position: relative;
+}
+.inv-slot.revealed {
+  background: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(201,168,76,0.8), 0 0 18px rgba(201,168,76,0.3);
+}
+@keyframes dotPulse {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.inv-slot.dropping { animation: dotPulse 0.5s cubic-bezier(0.34,1.4,0.64,1) forwards; }
+
+/* ─── STEP NUMBER BADGE ─── */
+.step-badge {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.65rem, 2vw, 0.8rem);
+  letter-spacing: 0.25em;
+  color: var(--gold2);
+  text-align: center;
+  margin-bottom: 0.3rem;
+}
+.step-num {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(201,168,76,0.5);
+}
+
+/* ─── NAVIGATION SECTION ─── */
+.nav-section {
+  background: rgba(12,6,0,0.9);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 0.6rem;
+}
+.nav-compass {
+  font-size: 1.5rem;
+  display: inline-block;
+  animation: compassSpin 8s linear infinite;
+  margin-right: 0.4rem;
+}
+@keyframes compassSpin {
+  0%,90%  { transform: rotate(0deg); }
+  95%     { transform: rotate(15deg); }
+  100%    { transform: rotate(0deg); }
+}
+.nav-dest-label {
+  font-family: 'Cinzel', serif; font-size: 0.6rem;
+  letter-spacing: 0.25em; color: rgba(201,168,76,0.6);
+}
+.nav-monument {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1rem, 3.5vw, 1.4rem);
+  font-weight: 700; color: var(--gold);
+  margin: 0.2rem 0;
+}
+.nav-address { font-size: 0.85rem; color: rgba(250,247,240,0.7); }
+.nav-distance {
+  font-family: 'Cinzel', serif; font-size: 0.75rem;
+  color: var(--gold2); letter-spacing: 0.1em;
+  margin-top: 0.2rem;
+}
+
+/* ─── MAP SECTION ─── */
+.map-section {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 0.6rem;
+}
+.map-label {
+  background: rgba(12,6,0,0.95);
+  padding: 0.35rem 0.8rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.55rem;
+  letter-spacing: 0.25em;
+  color: rgba(201,168,76,0.55);
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.map-label::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #4fc3f7;
+  box-shadow: 0 0 6px #4fc3f7;
+  animation: gpsPulse 1.5s ease-in-out infinite;
+}
+@keyframes gpsPulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%     { opacity: 0.4; transform: scale(1.4); }
+}
+.enigma-map {
+  height: 150px;
+  background: #1a1a1a;
+  position: relative;
+}
+.map-no-gps {
+  display: none;
+  background: rgba(12,6,0,0.9);
+  padding: 0.3rem 0.8rem;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: rgba(250,247,240,0.35);
+  text-align: center;
+}
+
+/* Leaflet overrides for dark theme */
+.leaflet-container { background: #1a1a2e; }
+.leaflet-control-zoom a {
+  background: rgba(18,10,1,0.9) !important;
+  color: var(--gold) !important;
+  border-color: var(--border) !important;
+}
+.leaflet-control-attribution {
+  background: rgba(0,0,0,0.5) !important;
+  color: rgba(255,255,255,0.3) !important;
+  font-size: 8px !important;
+}
+.leaflet-control-attribution a { color: rgba(255,255,255,0.4) !important; }
+
+/* User GPS marker */
+.user-marker {
+  width: 14px; height: 14px;
+  background: #4fc3f7;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(79,195,247,0.6);
+  animation: userPing 1.8s ease-in-out infinite;
+}
+@keyframes userPing {
+  0%   { box-shadow: 0 0 0 0 rgba(79,195,247,0.6); }
+  70%  { box-shadow: 0 0 0 10px rgba(79,195,247,0); }
+  100% { box-shadow: 0 0 0 0 rgba(79,195,247,0); }
+}
+
+/* ─── ENIGMA SECTION ─── */
+.enigma-section { padding: 0.5rem 0; }
+.narrative-text {
+  font-style: italic;
+  color: rgba(250,247,240,0.85);
+  line-height: 1.7;
+  font-size: clamp(0.95rem, 2.5vw, 1.05rem);
+  margin-bottom: 1rem;
+}
+.question-box {
+  background: rgba(12,6,0,0.8);
+  border: 1px solid rgba(201,168,76,0.5);
+  border-left: 3px solid var(--gold);
+  border-radius: 4px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  font-weight: 600;
+  color: var(--cream);
+  line-height: 1.5;
+}
+
+/* ─── HINT PARCHMENT ─── */
+.hint-parchment {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.5s ease;
+  margin-top: 0.5rem;
+}
+.hint-parchment.open { max-height: 300px; }
+.parchment-inner {
+  background: linear-gradient(135deg, #2a1a05, #1e1003);
+  border: 1px solid rgba(201,168,76,0.4);
+  border-radius: 4px;
+  padding: 0.8rem 1rem;
+  font-style: italic;
+  color: rgba(250,247,240,0.85);
+  font-size: 0.95rem;
+  position: relative;
+}
+.parchment-inner::before {
+  content: '📜';
+  position: absolute; top: -8px; left: 10px;
+  font-size: 1rem;
+}
+
+/* ─── FEEDBACK MESSAGES ─── */
+.feedback {
+  padding: 0.7rem 1rem; border-radius: 4px;
+  font-family: 'Cinzel', serif; font-size: 0.85rem;
+  letter-spacing: 0.05em; margin-top: 0.5rem;
+  display: none;
+}
+.feedback.success {
+  background: rgba(39,174,96,0.15); border: 1px solid rgba(39,174,96,0.5);
+  color: #2ecc71;
+}
+.feedback.error {
+  background: rgba(192,57,43,0.15); border: 1px solid rgba(192,57,43,0.5);
+  color: #e74c3c;
+}
+.feedback.info {
+  background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.4);
+  color: var(--gold2);
+}
+
+/* ─── HINT DISPLAY ─── */
+.hint-display { margin-top: 0.5rem; display: none; }
+.hint-item {
+  background: rgba(18,10,1,0.8);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 4px; padding: 0.7rem 0.9rem;
+  margin-bottom: 0.4rem;
+  font-style: italic; font-size: 0.9rem;
+  color: rgba(250,247,240,0.8);
+  position: relative;
+  animation: slideDown 0.4s ease;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hint-item::before { content: '🪶 '; }
+
+/* ─── TYPEWRITER ─── */
+#briefingText { min-height: 8rem; line-height: 1.8; font-size: clamp(0.95rem, 2.5vw, 1.1rem); }
+.cursor-blink {
+  display: inline-block; width: 2px; height: 1.1em;
+  background: var(--gold); vertical-align: middle;
+  animation: blink 0.7s step-end infinite;
+  margin-left: 2px;
+}
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ─── SPLASH ─── */
+#screen-splash { background: #000; flex-direction: column; gap: 1.5rem; }
+.splash-letters span {
+  display: inline-block; opacity: 0;
+  color: var(--gold);
+  transition: opacity 0.1s;
+}
+@keyframes divineRays {
+  0%   { opacity: 0; transform: scale(0.8) rotate(0deg); }
+  50%  { opacity: 1; transform: scale(1.05) rotate(3deg); }
+  100% { opacity: 0.85; transform: scale(1) rotate(0deg); }
+}
+.divine-light {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px; height: 300px;
+  background: radial-gradient(ellipse, rgba(212,160,23,0.4) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: divineRays 2s ease forwards;
+  pointer-events: none;
+}
+
+/* ─── SCREEN LAYOUTS ─── */
+#screen-code { padding: 2rem 1rem; justify-content: center; }
+.code-logo { text-align: center; margin-bottom: 1.5rem; }
+#screen-briefing { padding: 6rem 1rem 2rem; justify-content: flex-start; }
+.enigma-screen { padding: 7rem 1rem 6rem; justify-content: flex-start; }
+#screen-meta { padding: 6rem 1rem 6rem; }
+
+/* ─── FRAGMENT REVEAL (meta) ─── */
+.fragment-reveal {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 0.5rem; margin: 1.5rem 0;
+}
+.frag-card {
+  width: 44px; height: 52px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif;
+  font-size: 1.3rem; font-weight: 700;
+  color: var(--gold);
+  background: rgba(201,168,76,0.08);
+  box-shadow: 0 0 8px rgba(201,168,76,0.2);
+}
+.frag-card.missing {
+  color: rgba(250,247,240,0.2); border-color: rgba(250,247,240,0.15);
+  background: rgba(18,10,1,0.5); box-shadow: none;
+}
+
+/* ─── VICTORY ─── */
+#screen-victory { padding: 4rem 1rem; }
+@keyframes eagleSoar {
+  0%   { transform: translateY(60px) scale(0.5); opacity: 0; }
+  50%  { transform: translateY(-10px) scale(1.05); opacity: 1; }
+  70%  { transform: translateY(5px) scale(0.98); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.eagle-victory { animation: eagleSoar 1.2s cubic-bezier(0.34,1.2,0.64,1) forwards; }
+@keyframes confettiFall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+.confetti-piece {
+  position: fixed; top: -20px;
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  animation: confettiFall linear forwards;
+  pointer-events: none; z-index: 200;
+}
+
+/* ─── RANK BADGE ─── */
+.rank-badge {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.1rem, 3vw, 1.4rem); font-weight: 700;
+  padding: 0.8rem 2rem; border-radius: 6px;
+  border: 2px solid var(--gold); color: var(--gold);
+  background: rgba(201,168,76,0.1);
+  text-align: center; letter-spacing: 0.08em;
+  box-shadow: 0 0 24px rgba(201,168,76,0.3);
+}
+
+/* ─── SCROLLABLE CONTAINER ─── */
+.scroll-container {
+  width: 100%; max-width: 680px;
+  margin: 0 auto; padding: 0 0.5rem;
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 400px) {
+  .btn { font-size: 0.78rem; padding: 0.75rem 1.4rem; letter-spacing: 0.08em; }
+  .card { padding: 1rem; }
+}
+
+/* ─── LANGUAGE SELECTOR ─── */
+.lang-selector {
+  display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.2rem;
+}
+.lang-btn {
+  font-family: 'Cinzel', serif; font-size: 0.8rem; font-weight: 700;
+  letter-spacing: 0.06em; padding: 0.55rem 1.1rem; border-radius: 6px;
+  border: 1px solid rgba(201,168,76,0.4); background: rgba(18,10,1,0.6);
+  color: rgba(201,168,76,0.65); cursor: pointer; transition: all 0.2s;
+  min-width: 90px; text-align: center;
+}
+.lang-btn:hover { border-color: rgba(201,168,76,0.7); color: rgba(201,168,76,0.95); background: rgba(201,168,76,0.08); }
+.lang-btn.active {
+  border-color: var(--gold); color: var(--bg); background: var(--gold);
+  box-shadow: 0 0 14px rgba(201,168,76,0.45);
+}
+
+/* ─── CLUE WORD CARD ─── */
+.clue-word-reveal {
+  display: inline-block;
+  background: rgba(201,168,76,0.12);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  padding: 0.6rem 1.2rem;
+  font-family: 'Cinzel', serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 16px rgba(201,168,76,0.5);
+  margin-top: 0.5rem;
+  animation: clueAppear 0.5s cubic-bezier(0.34,1.4,0.64,1) forwards;
+}
+@keyframes clueAppear {
+  0% { transform: scale(0.6) translateY(-10px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* ─── CLUE DISPLAY IN META ─── */
+.clue-display-grid {
+  display: flex; flex-wrap: wrap; gap: 0.6rem;
+  justify-content: center; margin: 1.2rem 0;
+}
+.clue-display-card {
+  background: rgba(201,168,76,0.08);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.9rem; font-weight: 700;
+  color: var(--gold); letter-spacing: 0.12em;
+  box-shadow: 0 0 8px rgba(201,168,76,0.15);
+}
+.clue-display-card.missing {
+  color: rgba(250,247,240,0.2); border-color: rgba(250,247,240,0.1);
+  background: rgba(18,10,1,0.4); box-shadow: none;
+  letter-spacing: 0.05em; font-size: 0.75rem;
+}
+
+/* ─── INTRO VIDEO ─── */
+.video-container {
+  position: relative; width: 100%; padding-top: 56.25%;
+  border-radius: 6px; overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+.video-container iframe {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+}
+.skip-video-btn {
+  display: block; text-align: center; margin-top: 0.6rem;
+  font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 0.15em;
+  color: rgba(201,168,76,0.5); cursor: pointer; text-decoration: underline;
+}
+.skip-video-btn:hover { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<canvas id="particleCanvas"></canvas>
+<div id="edgeGlow"></div>
+<div id="vignette"></div>
+<div id="scanLine"></div>
+<div id="flashOverlay"></div>
+
+<!-- ═══════ HUD ═══════ -->
+<div id="hud">
+  <div class="hud-row">
+    <div class="hud-logo">AQ <span>OPERATIO AQUILA</span></div>
+    <div class="hud-score" id="hudScore">1000 pts<small id="scoreLabel">SCORE</small></div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+  </div>
+</div>
+
+<!-- ═══════ INVENTORY ═══════ -->
+<div id="inventory">
+  <div class="inv-label" id="invLabel">FRAGMENTS COLLECTÉS</div>
+  <div class="inv-fragments" id="invFragments"></div>
+</div>
+
+<!-- ═══════ SCREEN 0 — SPLASH ═══════ -->
+<div id="screen-splash" class="screen active">
+  <div class="divine-light" id="divineLight" style="opacity:0"></div>
+  <div id="splashEagle" style="opacity:0;transition:opacity 0.8s ease;position:relative;z-index:2">
+    <svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="eagleGrad" cx="50%" cy="40%" r="55%">
+          <stop offset="0%" stop-color="#f0d060"/>
+          <stop offset="60%" stop-color="#c9a84c"/>
+          <stop offset="100%" stop-color="#8a6520"/>
+        </radialGradient>
+        <filter id="eagleGlow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <g filter="url(#eagleGlow)" fill="url(#eagleGrad)">
+        <ellipse cx="80" cy="88" rx="18" ry="28"/>
+        <ellipse cx="80" cy="54" rx="13" ry="12"/>
+        <path d="M80 58 L70 64 L80 62 Z"/>
+        <path d="M62 80 C40 60 10 55 8 70 C20 72 35 78 62 90 Z"/>
+        <path d="M62 90 C35 85 15 92 12 105 C28 100 45 95 62 95 Z"/>
+        <path d="M98 80 C120 60 150 55 152 70 C140 72 125 78 98 90 Z"/>
+        <path d="M98 90 C125 85 145 92 148 105 C132 100 115 95 98 95 Z"/>
+        <path d="M68 112 L80 130 L92 112 L80 118 Z"/>
+        <rect x="72" y="112" width="5" height="14" rx="2"/>
+        <rect x="83" y="112" width="5" height="14" rx="2"/>
+        <path d="M70 126 L66 130 M72 127 L69 132 M77 127 L74 131" stroke="url(#eagleGrad)" stroke-width="1.5" fill="none"/>
+        <path d="M81 126 L77 130 M83 127 L80 132 M88 127 L85 131" stroke="url(#eagleGrad)" stroke-width="1.5" fill="none"/>
+        <circle cx="76" cy="52" r="3" fill="#1a0f02"/>
+        <circle cx="75" cy="51" r="1" fill="#faf7f0"/>
+        <path d="M80 42 L76 34 L80 38 L84 34 L80 42Z" opacity="0.8"/>
+      </g>
+    </svg>
+  </div>
+  <div id="splashTitle" class="splash-letters title-main" style="margin-top:1rem;font-size:clamp(1.5rem,5vw,2.8rem);position:relative;z-index:2"></div>
+  <div id="splashSub" class="title-sub" style="opacity:0;transition:opacity 1s ease;position:relative;z-index:2">Operatio Aquila</div>
+</div>
+
+<!-- ═══════ SCREEN 1 — CODE ═══════ -->
+<div id="screen-code" class="screen">
+  <div class="scroll-container" style="max-width:480px">
+    <div class="code-logo">
+      <div style="display:inline-block;margin-bottom:0.5rem">
+        <svg width="52" height="52" viewBox="0 0 160 160" fill="none">
+          <defs><radialGradient id="eg2" cx="50%" cy="40%" r="55%"><stop offset="0%" stop-color="#f0d060"/><stop offset="100%" stop-color="#8a6520"/></radialGradient></defs>
+          <g fill="url(#eg2)">
+            <ellipse cx="80" cy="88" rx="18" ry="28"/>
+            <ellipse cx="80" cy="54" rx="13" ry="12"/>
+            <path d="M80 58 L70 64 L80 62 Z"/>
+            <path d="M62 80 C40 60 10 55 8 70 C20 72 35 78 62 90 Z"/>
+            <path d="M62 90 C35 85 15 92 12 105 C28 100 45 95 62 95 Z"/>
+            <path d="M98 80 C120 60 150 55 152 70 C140 72 125 78 98 90 Z"/>
+            <path d="M98 90 C125 85 145 92 148 105 C132 100 115 95 98 95 Z"/>
+            <path d="M68 112 L80 130 L92 112 L80 118 Z"/>
+            <circle cx="76" cy="52" r="3" fill="#1a0f02"/>
+          </g>
+        </svg>
+      </div>
+      <div class="title-main" style="font-size:clamp(1.4rem,5vw,2.2rem)">AVENTICUM QUEST</div>
+      <div class="title-sub" style="font-size:clamp(0.85rem,2.5vw,1.1rem)">Operatio Aquila</div>
+      <div class="sep" style="margin-top:0.8rem"></div>
+      <p id="tagline" class="title-tagline" style="margin-top:0.6rem">Le Sénat d'Aventicum vous attend, soldat.</p>
+    </div>
+    <div class="lang-selector">
+      <button class="lang-btn active" id="langBtn-fr" onclick="setLang('fr')">🇫🇷 Français</button>
+      <button class="lang-btn" id="langBtn-en" onclick="setLang('en')">🇬🇧 English</button>
+      <button class="lang-btn" id="langBtn-de" onclick="setLang('de')">🇩🇪 Deutsch</button>
+    </div>
+    <div class="card" style="margin-top:0.5rem">
+      <div style="margin-bottom:1rem">
+        <label id="label-mission-code" class="cinzel" style="font-size:0.7rem;letter-spacing:0.2em;color:var(--gold2);display:block;margin-bottom:0.4rem">CODE DE MISSION</label>
+        <input type="text" id="codeInput" class="input-field" placeholder="AQUILA-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </div>
+      <div style="margin-bottom:1.2rem">
+        <label id="label-team-name" class="cinzel" style="font-size:0.7rem;letter-spacing:0.2em;color:var(--gold2);display:block;margin-bottom:0.4rem">NOM DE L'ÉQUIPE</label>
+        <input type="text" id="teamInput" class="input-field" placeholder="Nom de votre équipe" autocomplete="off">
+      </div>
+      <div id="codeError" class="feedback error" style="display:none;margin-bottom:0.8rem">Le Sénat rejette ce code, soldat. Vérifiez votre email.</div>
+      <button class="btn btn-primary" id="btnLaunch" onclick="submitCode()" style="width:100%">
+        🔱 LANCER LA MISSION
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SCREEN 2 — BRIEFING ═══════ -->
+<div id="screen-briefing" class="screen">
+  <div class="scroll-container" style="max-width:640px">
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <div id="briefingLabel" class="step-badge">BRIEFING DE MISSION</div>
+      <div class="title-main" style="font-size:clamp(1.2rem,4vw,1.8rem)">OPERATIO AQUILA</div>
+      <div class="sep"></div>
+    </div>
+    <div class="card">
+      <div id="briefingText" class="narrative-text"></div>
+      <div class="sep" style="margin-top:1rem"></div>
+      <button id="startMissionBtn" class="btn btn-primary" style="width:100%;display:none;margin-top:0.8rem" onclick="startMission()">
+        ⚔️ JE SUIS PRÊT — QUE LA MISSION COMMENCE
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SCREENS 3–14 — ÉNIGMES ═══════ -->
+<div id="enigmaContainer"></div>
+
+<!-- ═══════ SCREEN 15 — META ═══════ -->
+<div id="screen-meta" class="screen">
+  <div class="scroll-container" style="max-width:600px;text-align:center">
+    <div id="metaRevealLabel" class="step-badge">RÉVÉLATION FINALE</div>
+    <div id="metaTitle" class="title-main" style="font-size:clamp(1.3rem,4vw,2rem)">L'AQUILA SE RÉVÈLE</div>
+    <div class="sep"></div>
+    <p id="metaNarrative" class="narrative-text" style="text-align:center;margin-top:1rem">Tous les fragments sont réunis. Assemblez-les et identifiez le nom complet de la légion pour déclencher la révélation.</p>
+    <div class="clue-display-grid" id="metaFragments"></div>
+    <div class="sep-sm sep"></div>
+    <div class="card" style="margin-top:1rem">
+      <div id="metaQuestion" class="question-box">Quel est le nom complet de la légion dont l'aigle a été dérobée ?</div>
+      <input type="text" id="metaInput" class="input-field" placeholder="Entrez le nom de la légion..." style="margin-bottom:0.8rem">
+      <button id="metaBtn" class="btn btn-primary" onclick="checkMeta()" style="width:100%">🔱 RÉVÉLER L'AQUILA</button>
+      <div id="metaFeedback" class="feedback" style="margin-top:0.8rem;display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SCREEN 16 — VICTOIRE ═══════ -->
+<div id="screen-victory" class="screen">
+  <div class="scroll-container" style="max-width:580px;text-align:center">
+    <div id="victoryEagle" style="opacity:0">
+      <svg width="120" height="120" viewBox="0 0 160 160" fill="none">
+        <defs>
+          <radialGradient id="eg3" cx="50%" cy="40%" r="55%">
+            <stop offset="0%" stop-color="#ffe878"/>
+            <stop offset="60%" stop-color="#c9a84c"/>
+            <stop offset="100%" stop-color="#8a6520"/>
+          </radialGradient>
+          <filter id="glow3"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <g filter="url(#glow3)" fill="url(#eg3)">
+          <ellipse cx="80" cy="88" rx="18" ry="28"/>
+          <ellipse cx="80" cy="54" rx="13" ry="12"/>
+          <path d="M80 58 L70 64 L80 62 Z"/>
+          <path d="M62 80 C40 60 10 55 8 70 C20 72 35 78 62 90 Z"/>
+          <path d="M62 90 C35 85 15 92 12 105 C28 100 45 95 62 95 Z"/>
+          <path d="M98 80 C120 60 150 55 152 70 C140 72 125 78 98 90 Z"/>
+          <path d="M98 90 C125 85 145 92 148 105 C132 100 115 95 98 95 Z"/>
+          <path d="M68 112 L80 130 L92 112 L80 118 Z"/>
+          <rect x="72" y="112" width="5" height="14" rx="2"/>
+          <rect x="83" y="112" width="5" height="14" rx="2"/>
+          <circle cx="76" cy="52" r="3" fill="#1a0f02"/>
+          <circle cx="75" cy="51" r="1" fill="#faf7f0"/>
+          <path d="M80 42 L76 34 L80 38 L84 34 L80 42Z" opacity="0.8"/>
+        </g>
+      </svg>
+    </div>
+    <div id="victMission" class="title-main" style="font-size:clamp(1.1rem,4vw,1.8rem);margin-top:0.8rem">MISSION ACCOMPLIE</div>
+    <div id="victCity" class="title-sub" style="font-size:clamp(0.8rem,2.5vw,1rem)">AVENTICUM EST SAUVÉE</div>
+    <div class="sep"></div>
+    <div id="victoryTeam" class="cinzel" style="font-size:clamp(1.2rem,4vw,1.8rem);color:var(--gold);margin:1rem 0;text-shadow:0 0 20px rgba(201,168,76,0.5)"></div>
+    <div id="victoryTime" class="cinzel" style="font-size:0.9rem;color:rgba(250,247,240,0.6);margin-bottom:1rem;letter-spacing:0.1em"></div>
+    <div id="victoryScore" class="cinzel" style="font-size:clamp(1.5rem,5vw,2.5rem);color:var(--gold);font-weight:900;text-shadow:0 0 20px rgba(201,168,76,0.6);margin-bottom:0.5rem"></div>
+    <div id="victoryRank" class="rank-badge" style="display:inline-block;margin:0.5rem auto"></div>
+    <div class="sep" style="margin-top:1rem"></div>
+    <p id="victoryMsg" class="narrative-text" style="text-align:center;margin:1rem 0"></p>
+    <p id="victEmpire" class="narrative-text" style="text-align:center;font-size:0.85rem;opacity:0.6;margin-bottom:1rem">L'Empire s'étend. Lausanne, Fribourg, Sion vous appellent. D'autres missions arrivent bientôt.</p>
+    <div style="display:flex;gap:0.8rem;justify-content:center;flex-wrap:wrap">
+      <a href="#" id="victReview" class="btn btn-primary" onclick="reviewLink()">⭐ LAISSER UN AVIS 5 ÉTOILES</a>
+      <button id="victShare" class="btn" onclick="shareVictory()">📤 PARTAGER MA VICTOIRE</button>
+    </div>
+  </div>
+</div>
+<script>
+/* ══════ LANGUAGE ══════ */
+let currentLang = 'fr';
+
+const translations = {
+  fr: {
+    tagline: "Le Sénat d'Aventicum vous attend, soldat.",
+    missionCode: "CODE DE MISSION",
+    teamName: "NOM DE L'ÉQUIPE",
+    teamPlaceholder: "Nom de votre équipe",
+    briefingLabel: "BRIEFING DE MISSION",
+    startBtn: "⚔️ JE SUIS PRÊT — QUE LA MISSION COMMENCE",
+    scoreLabel: "SCORE",
+    invLabel: "FRAGMENTS COLLECTÉS",
+    nextDest: "PROCHAINE DESTINATION",
+    realTimePos: "POSITION EN TEMPS RÉEL",
+    gpsOff: "Activez la localisation pour voir votre position",
+    openMaps: "Ouvrir dans Google Maps",
+    stepLabel: "ÉTAPE",
+    answerPlaceholder: "Votre réponse...",
+    confirmBtn: "🔱 CONFIRMER",
+    hintBtn: "🪶 Demander un indice",
+    supportBtn: "📞 Appeler le support",
+    hint: "Indice",
+    codeError: "Le Sénat rejette ce code, soldat. Vérifiez votre email.",
+    launchBtn: "🔱 LANCER LA MISSION",
+    correctFirst: () => `Bien joué, soldat ! Indice révélé. +100 pts`,
+    correctRetry: () => `Correct — indice révélé.`,
+    wrong: "Rome ne pardonne pas l'erreur, soldat. Aucun point pour cette étape.",
+    finalReveal: "RÉVÉLATION FINALE",
+    aquilaReveals: "L'AQUILA SE RÉVÈLE",
+    metaNarrative: "Tous les fragments sont réunis. Assemblez-les et identifiez le nom complet de la légion pour déclencher la révélation.",
+    metaQuestion: "Quel est le nom complet de la légion dont l'aigle a été dérobée ?",
+    metaPlaceholder: "Entrez le nom de la légion...",
+    metaBtn: "🔱 RÉVÉLER L'AQUILA",
+    metaWrong: "Ce n'est pas le bon assemblage, soldat. Observez vos fragments.",
+    missionAccomplished: "MISSION ACCOMPLIE",
+    cityAvenched: "AVENTICUM EST SAUVÉE",
+    duration: "Durée",
+    victoryMsg: (t) => `L'opération Aquila est neutralisée. La cité romaine est sauve. Le Sénat d'Aventicum salue l'équipe ${t}, qui a percé les secrets de la légion.`,
+    empireMsg: "L'Empire s'étend. Lausanne, Fribourg, Sion vous appellent. D'autres missions arrivent bientôt.",
+    reviewBtn: "⭐ LAISSER UN AVIS 5 ÉTOILES",
+    shareBtn: "📤 PARTAGER MA VICTOIRE",
+    shareText: (s,t) => `🦅 Mission accomplie ! J'ai terminé Aventicum Quest avec ${s} pts en équipe « ${t} » ! #AventicumQuest`,
+    ranks: [
+      { min:900, label:"LÉGAT DE L'EMPIRE", icon:'🦅' },
+      { min:700, label:"CENTURION D'ÉLITE", icon:'⚔️' },
+      { min:500, label:'LÉGIONNAIRE HONORABLE', icon:'🛡️' },
+      { min:0,   label:'RECRUE PROMETTEUSE', icon:'📜' }
+    ]
+  },
+  en: {
+    tagline: "The Senate of Aventicum awaits you, soldier.",
+    missionCode: "MISSION CODE",
+    teamName: "TEAM NAME",
+    teamPlaceholder: "Your team name",
+    briefingLabel: "MISSION BRIEFING",
+    startBtn: "⚔️ I AM READY — LET THE MISSION BEGIN",
+    scoreLabel: "SCORE",
+    invLabel: "COLLECTED FRAGMENTS",
+    nextDest: "NEXT DESTINATION",
+    realTimePos: "REAL-TIME POSITION",
+    gpsOff: "Enable location to see your position",
+    openMaps: "Open in Google Maps",
+    stepLabel: "STEP",
+    answerPlaceholder: "Your answer...",
+    confirmBtn: "🔱 CONFIRM",
+    hintBtn: "🪶 Request a hint",
+    supportBtn: "📞 Call support",
+    hint: "Hint",
+    codeError: "The Senate rejects this code, soldier. Check your email.",
+    launchBtn: "🔱 LAUNCH THE MISSION",
+    correctFirst: () => `Well done, soldier! Clue revealed. +100 pts`,
+    correctRetry: () => `Correct — clue revealed.`,
+    wrong: "Rome does not forgive mistakes, soldier. No points for this step.",
+    finalReveal: "FINAL REVELATION",
+    aquilaReveals: "THE AQUILA IS REVEALED",
+    metaNarrative: "All fragments are gathered. Assemble them and identify the full name of the legion to trigger the revelation.",
+    metaQuestion: "What is the full name of the legion whose eagle was stolen?",
+    metaPlaceholder: "Enter the legion name...",
+    metaBtn: "🔱 REVEAL THE AQUILA",
+    metaWrong: "That is not the right assembly, soldier. Study your fragments.",
+    missionAccomplished: "MISSION ACCOMPLISHED",
+    cityAvenched: "AVENTICUM IS SAVED",
+    duration: "Time",
+    victoryMsg: (t) => `Operation Aquila is neutralized. The Roman city is saved. The Senate of Aventicum salutes team ${t}, who uncovered the secrets of the legion.`,
+    empireMsg: "The Empire expands. Lausanne, Fribourg, Sion are calling. More missions coming soon.",
+    reviewBtn: "⭐ LEAVE A 5-STAR REVIEW",
+    shareBtn: "📤 SHARE MY VICTORY",
+    shareText: (s,t) => `🦅 Mission accomplished! I completed Aventicum Quest with ${s} pts as team « ${t} »! #AventicumQuest`,
+    ranks: [
+      { min:900, label:"IMPERIAL LEGATE", icon:'🦅' },
+      { min:700, label:"ELITE CENTURION", icon:'⚔️' },
+      { min:500, label:'HONOURABLE LEGIONNAIRE', icon:'🛡️' },
+      { min:0,   label:'PROMISING RECRUIT', icon:'📜' }
+    ]
+  },
+  de: {
+    tagline: "Der Senat von Aventicum erwartet euch, Soldat.",
+    missionCode: "MISSIONSCODE",
+    teamName: "TEAMNAME",
+    teamPlaceholder: "Euer Teamname",
+    briefingLabel: "MISSIONS-BRIEFING",
+    startBtn: "⚔️ ICH BIN BEREIT — DIE MISSION BEGINNT",
+    scoreLabel: "PUNKTE",
+    invLabel: "GESAMMELTE FRAGMENTE",
+    nextDest: "NÄCHSTES ZIEL",
+    realTimePos: "ECHTZEIT-POSITION",
+    gpsOff: "Aktiviere die Ortung, um deine Position zu sehen",
+    openMaps: "In Google Maps öffnen",
+    stepLabel: "SCHRITT",
+    answerPlaceholder: "Deine Antwort...",
+    confirmBtn: "🔱 BESTÄTIGEN",
+    hintBtn: "🪶 Hinweis anfordern",
+    supportBtn: "📞 Support anrufen",
+    hint: "Hinweis",
+    codeError: "Der Senat lehnt diesen Code ab, Soldat. Prüfe deine E-Mail.",
+    launchBtn: "🔱 MISSION STARTEN",
+    correctFirst: () => `Gut gemacht, Soldat! Hinweis enthüllt. +100 Pkt`,
+    correctRetry: () => `Richtig — Hinweis enthüllt.`,
+    wrong: "Rom verzeiht keine Fehler, Soldat. Keine Punkte für diesen Schritt.",
+    finalReveal: "ABSCHLUSSENTHÜLLUNG",
+    aquilaReveals: "DIE AQUILA ENTHÜLLT SICH",
+    metaNarrative: "Alle Fragmente sind vereint. Setzt sie zusammen und identifiziert den vollständigen Namen der Legion.",
+    metaQuestion: "Wie lautet der vollständige Name der Legion, deren Adler gestohlen wurde?",
+    metaPlaceholder: "Gib den Legionsnamen ein...",
+    metaBtn: "🔱 AQUILA ENTHÜLLEN",
+    metaWrong: "Das ist nicht die richtige Zusammensetzung, Soldat. Beobachte deine Fragmente.",
+    missionAccomplished: "MISSION ERFÜLLT",
+    cityAvenched: "AVENTICUM IST GERETTET",
+    duration: "Zeit",
+    victoryMsg: (t) => `Operation Aquila ist neutralisiert. Die römische Stadt ist gerettet. Der Senat von Aventicum grüßt das Team ${t}, das die Geheimnisse der Legion enthüllt hat.`,
+    empireMsg: "Das Imperium wächst. Lausanne, Freiburg, Sitten rufen. Weitere Missionen kommen bald.",
+    reviewBtn: "⭐ BEWERTUNG HINTERLASSEN",
+    shareBtn: "📤 SIEG TEILEN",
+    shareText: (s,t) => `🦅 Mission erfüllt! Ich habe Aventicum Quest mit ${s} Pkt als Team « ${t} » abgeschlossen! #AventicumQuest`,
+    ranks: [
+      { min:900, label:"KAISERLICHER LEGAT", icon:'🦅' },
+      { min:700, label:"ELITE-ZENTURIO", icon:'⚔️' },
+      { min:500, label:'EHRENVOLLER LEGIONÄR', icon:'🛡️' },
+      { min:0,   label:'VIELVERSPRECHENDER REKRUT', icon:'📜' }
+    ]
+  }
+};
+
+function t(key, ...args) {
+  const val = translations[currentLang][key];
+  return typeof val === 'function' ? val(...args) : (val || translations.fr[key]);
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  ['fr','en','de'].forEach(l => {
+    const btn = document.getElementById('langBtn-' + l);
+    if (btn) btn.classList.toggle('active', l === lang);
+  });
+  applyTranslations();
+  if (!G.gameActive) buildEnigmaScreens();
+}
+
+function applyTranslations() {
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const setHTML = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
+  const setPlaceholder = (id, val) => { const el = document.getElementById(id); if (el) el.placeholder = val; };
+  set('tagline', t('tagline'));
+  set('label-mission-code', t('missionCode'));
+  set('label-team-name', t('teamName'));
+  setPlaceholder('teamInput', t('teamPlaceholder'));
+  set('codeError', t('codeError'));
+  set('btnLaunch', t('launchBtn'));
+  set('briefingLabel', t('briefingLabel'));
+  set('startMissionBtn', t('startBtn'));
+  set('invLabel', t('invLabel'));
+  set('metaRevealLabel', t('finalReveal'));
+  set('metaTitle', t('aquilaReveals'));
+  set('metaNarrative', t('metaNarrative'));
+  set('metaQuestion', t('metaQuestion'));
+  setPlaceholder('metaInput', t('metaPlaceholder'));
+  set('metaBtn', t('metaBtn'));
+  set('victMission', t('missionAccomplished'));
+  set('victCity', t('cityAvenched'));
+  set('victEmpire', t('empireMsg'));
+  set('victReview', t('reviewBtn'));
+  set('victShare', t('shareBtn'));
+  set('scoreLabel', t('scoreLabel'));
+}
+
+/* ══════ DATA ══════ */
+const VALID_CODES = ['AQUILA-TEST'];
+
+const ENIGMA_COORDS = [
+  [46.8810, 7.0425],[46.8810, 7.0425],
+  [46.8819, 7.0464],[46.8819, 7.0464],
+  [46.8803, 7.0488],[46.8803, 7.0488],
+  [46.8858, 7.0499],[46.8858, 7.0499],
+  [46.8877, 7.0579],[46.8877, 7.0579],
+  [46.8870, 7.0595],[46.8870, 7.0595]
+];
+
+const BRIEFING_TEXTS = {
+  fr: `À l'aube, le gardien du trésor légionnaire a poussé un cri qui a traversé tout Aventicum : l'alcôve de l'aquila était vide, et la serrure intacte. Cette nuit, un voleur a osé l'impensable : dérober l'aquila de la Legio XXI Rapax — l'aigle sacrée, symbole de la puissance de Rome. Dans 90 minutes, l'Empereur Hadrien foule le sol de notre cité.\n\nVotre mission, speculatores : suivez la piste du voleur à travers la ville, résolvez les 12 énigmes qu'il a semées sur son chemin, et rapportez l'aigle avant l'arrivée impériale.\n\nQue Jupiter guide vos pas, [TEAM]. Aventicum compte sur vous.`,
+  en: `At dawn, the keeper of the legionary treasury let out a cry that echoed across all of Aventicum: the aquila's alcove was empty, the lock untouched. Tonight, a thief dared the unthinkable — stealing the aquila of the Legio XXI Rapax, the sacred eagle, symbol of Rome's power. In 90 minutes, Emperor Hadrian will set foot in our city.\n\nYour mission, speculatores: follow the thief's trail through the city, solve the 12 riddles left in his wake, and return the eagle before the imperial arrival.\n\nMay Jupiter guide your steps, [TEAM]. Aventicum is counting on you.`,
+  de: `Im Morgengrauen stieß der Hüter des Legionsschatzes einen Schrei aus, der ganz Aventicum durchdrang: die Nische der Aquila war leer, das Schloss unberührt. In dieser Nacht wagte ein Dieb das Undenkbare — er stahl die Aquila der Legio XXI Rapax, den heiligen Adler, Symbol der Macht Roms. In 90 Minuten betritt Kaiser Hadrian den Boden unserer Stadt.\n\nEure Mission, Speculatores: folgt der Spur des Diebes durch die Stadt, löst die 12 Rätsel auf seinem Weg, und bringt den Adler zurück.\n\nMöge Jupiter eure Schritte leiten, [TEAM]. Aventicum zählt auf euch.`
+};
+// clue: the secret word revealed on correct answer (shown in inventory + meta)
+// fragment: kept for backward compat but now clue is the visible word
+const ENIGMAS = [
+  { id:1, step:'I', fragment:'L', clue:'ARÈNE', answers:['36'],
+    fr:{ nav:{title:'Amphithéâtre Romain',desc:"L'amphithéâtre romain se trouve à l'entrée est de la ville.",address:'Rue du Clos 6, 1580 Avenches',distance:'Point de départ',mapsUrl:'https://maps.google.com/?q=Amphitheatre+romain+Avenches'},
+      narrative:"Le gardien tremblait encore quand il vous a remis ce premier indice. Le voleur connaissait bien les lieux, trop bien.",
+      question:"Cet amphithéâtre a vécu deux vies. Dans sa seconde vie agrandie, combien de gradins de pierre comptait-il ?",
+      hints:[{text:"Le panneau informatif mentionne les deux états de construction.",cost:20},{text:"Le chiffre est entre 30 et 40.",cost:40},{text:"La réponse est 36.",cost:80}]},
+    en:{ nav:{title:'Roman Amphitheatre',desc:"The Roman amphitheatre is at the eastern entrance of the city.",address:'Rue du Clos 6, 1580 Avenches',distance:'Starting point',mapsUrl:'https://maps.google.com/?q=Amphitheatre+romain+Avenches'},
+      narrative:"The keeper was still shaking when he handed you this first clue. The thief knew the place well, too well.",
+      question:"This amphitheatre lived two lives. In its expanded second life, how many stone tiers did it have?",
+      hints:[{text:"The information panel mentions both construction phases.",cost:20},{text:"The number is between 30 and 40.",cost:40},{text:"The answer is 36.",cost:80}]},
+    de:{ nav:{title:'Römisches Amphitheater',desc:"Das römische Amphitheater befindet sich am östlichen Stadteingang.",address:'Rue du Clos 6, 1580 Avenches',distance:'Startpunkt',mapsUrl:'https://maps.google.com/?q=Amphitheatre+romain+Avenches'},
+      narrative:"Der Hüter zitterte noch, als er euch diesen ersten Hinweis übergab. Der Dieb kannte den Ort gut, zu gut.",
+      question:"Dieses Amphitheater hatte zwei Leben. In seinem erweiterten zweiten Leben — wie viele Steinstufen hatte es?",
+      hints:[{text:"Die Infotafel erwähnt beide Bauphasen.",cost:20},{text:"Die Zahl liegt zwischen 30 und 40.",cost:40},{text:"Die Antwort ist 36.",cost:80}]}
+  },
+  { id:2, step:'II', fragment:'E', clue:'ROUGE', answers:['ROUGE','RED','ROT'],
+    fr:{ nav:{title:'Amphithéâtre Romain',desc:"Restez à l'amphithéâtre — observez la structure depuis l'intérieur.",address:'Rue du Clos 6, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Amphitheatre+romain+Avenches'},
+      narrative:"Le voleur a assisté à des combats ici. Il connaissait chaque détail de l'arène.",
+      question:"Le mur extérieur de l'arène était recouvert d'un enduit décoratif imitant la pierre de taille. De quelle couleur était peint ce faux appareil ?",
+      hints:[{text:"Cherche les traces d'enduit conservées entre les niches des murs.",cost:20},{text:"C'est la couleur de la guerre et du sang dans la Rome antique.",cost:40},{text:"La réponse est ROUGE.",cost:80}]},
+    en:{ nav:{title:'Roman Amphitheatre',desc:"Stay at the amphitheatre — observe the structure from inside.",address:'Rue du Clos 6, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Amphitheatre+romain+Avenches'},
+      narrative:"The thief attended fights here. He knew every detail of the arena.",
+      question:"The outer wall of the arena was covered with decorative plaster imitating stone. What colour was this fake stonework painted?",
+      hints:[{text:"Look for traces of preserved plaster between the wall niches.",cost:20},{text:"It is the colour of war and blood in ancient Rome.",cost:40},{text:"The answer is RED.",cost:80}]},
+    de:{ nav:{title:'Römisches Amphitheater',desc:"Bleibt am Amphitheater — beobachtet die Struktur von innen.",address:'Rue du Clos 6, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Amphitheatre+romain+Avenches'},
+      narrative:"Der Dieb besuchte hier Kämpfe. Er kannte jedes Detail der Arena.",
+      question:"Die Außenmauer der Arena war mit einem dekorativen Putz verkleidet, der Steinquader imitierte. Welche Farbe hatte dieser falsche Steinverband?",
+      hints:[{text:"Suche nach Putzresten zwischen den Wandnischen.",cost:20},{text:"Es ist die Farbe des Krieges und des Blutes im antiken Rom.",cost:40},{text:"Die Antwort ist ROT.",cost:80}]}
+  },
+  { id:3, step:'III', fragment:'G', clue:'CHEVAL', answers:['HIPPOCAMPES','HIPPOCAMPS','HIPPOKAMPEN'],
+    fr:{ nav:{title:'Sanctuaire du Cigognier',desc:"La colonne solitaire de 12 mètres est visible depuis la route.",address:'Chemin du Cigognier, 1580 Avenches',distance:"~400 m de l'amphithéâtre",mapsUrl:'https://maps.google.com/?q=Sanctuaire+Cigognier+Avenches'},
+      narrative:"Une seule colonne survit au passage des siècles. Le voleur y a gravé un message — des créatures mythiques ornent le fût.",
+      question:"Sur le fût de l'unique colonne encore debout, un décor sculpté représente des créatures marines mi-cheval mi-poisson. Comment les appelle-t-on ?",
+      hints:[{text:"Regarde la frise sculptée en bas-relief sur la colonne.",cost:20},{text:"Le mot vient du grec hippos (cheval) et kampos (monstre marin).",cost:40},{text:"La réponse est HIPPOCAMPES.",cost:80}]},
+    en:{ nav:{title:'Cigognier Sanctuary',desc:"The solitary 12-metre column is visible from the road.",address:'Chemin du Cigognier, 1580 Avenches',distance:"~400 m from the amphitheatre",mapsUrl:'https://maps.google.com/?q=Sanctuaire+Cigognier+Avenches'},
+      narrative:"A single column survives through the ages. The thief carved a message here — mythical creatures adorn the shaft.",
+      question:"On the shaft of the only remaining column, a sculpted frieze depicts half-horse half-fish mythological creatures. What are they called?",
+      hints:[{text:"Look at the bas-relief frieze on the column.",cost:20},{text:"The word comes from Greek hippos (horse) and kampos (sea monster).",cost:40},{text:"The answer is HIPPOCAMPS.",cost:80}]},
+    de:{ nav:{title:'Cigognier-Heiligtum',desc:"Die einsame 12-Meter-Säule ist von der Straße aus sichtbar.",address:'Chemin du Cigognier, 1580 Avenches',distance:"~400 m vom Amphitheater",mapsUrl:'https://maps.google.com/?q=Sanctuaire+Cigognier+Avenches'},
+      narrative:"Eine einzige Säule überlebt die Jahrhunderte. Der Dieb hinterließ hier eine Nachricht — mythische Wesen schmücken den Schaft.",
+      question:"Auf dem Schaft der einzigen noch stehenden Säule zeigt ein skulptierter Fries halb Pferd, halb Fisch mythologische Wesen. Wie heißen sie?",
+      hints:[{text:"Schau auf den Flachrelieffries an der Säule.",cost:20},{text:"Das Wort kommt vom griechischen hippos (Pferd) und kampos (Meeresungeheuer).",cost:40},{text:"Die Antwort ist HIPPOKAMPEN.",cost:80}]}
+  },
+  { id:4, step:'IV', fragment:'I', clue:'FONDATION', answers:['98'],
+    fr:{ nav:{title:'Sanctuaire du Cigognier',desc:"Restez au Sanctuaire. Observez le panneau d'information officiel.",address:'Chemin du Cigognier, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Sanctuaire+Cigognier+Avenches'},
+      narrative:"Le sanctuaire garde ses secrets dans ses fondations. Des arbres abattus il y a vingt siècles ont révélé la date exacte.",
+      question:"Les archéologues ont daté ce sanctuaire grâce aux pieux de fondation. En quelle année a débuté le chantier ?",
+      hints:[{text:"La méthode analyse les anneaux de croissance des arbres — dendrochronologie.",cost:20},{text:"L'année est à la fin du 1er siècle apr. J.-C.",cost:40},{text:"La réponse est 98.",cost:80}]},
+    en:{ nav:{title:'Cigognier Sanctuary',desc:"Stay at the Sanctuary. Look at the official information panel.",address:'Chemin du Cigognier, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Sanctuaire+Cigognier+Avenches'},
+      narrative:"The sanctuary guards its secrets in its foundations. Trees felled twenty centuries ago revealed the exact construction date.",
+      question:"Archaeologists dated this sanctuary using foundation piles. In what year did construction begin?",
+      hints:[{text:"The method analyses tree growth rings — dendrochronology.",cost:20},{text:"The year is at the end of the 1st century AD.",cost:40},{text:"The answer is 98.",cost:80}]},
+    de:{ nav:{title:'Cigognier-Heiligtum',desc:"Bleibt am Heiligtum. Schaut auf die offizielle Informationstafel.",address:'Chemin du Cigognier, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Sanctuaire+Cigognier+Avenches'},
+      narrative:"Das Heiligtum bewahrt seine Geheimnisse in seinen Fundamenten. Gefällte Bäume enthüllten das genaue Baudatum.",
+      question:"Archäologen datierten dieses Heiligtum anhand von Gründungspfählen. In welchem Jahr begann der Bau?",
+      hints:[{text:"Die Methode analysiert Baumringe — Dendrochronologie.",cost:20},{text:"Das Jahr liegt am Ende des 1. Jahrhunderts n. Chr.",cost:40},{text:"Die Antwort ist 98.",cost:80}]}
+  },
+  { id:5, step:'V', fragment:'O', clue:'COULOIR', answers:['11'],
+    fr:{ nav:{title:'Théâtre Romain',desc:"Le théâtre romain se trouve en face du Sanctuaire du Cigognier.",address:'Rue du Théâtre, 1580 Avenches',distance:'~200 m du Cigognier',mapsUrl:'https://maps.google.com/?q=Theatre+romain+Avenches'},
+      narrative:"Les acteurs portaient des masques sur cette scène antique. Le voleur a compté les voies d'accès pour choisir sa fuite.",
+      question:"Les spectateurs empruntaient des couloirs voûtés pour rejoindre leurs gradins. Combien de ces passages — appelés vomitoires — en comptait-on ?",
+      hints:[{text:"Parcours la base des gradins et compte les ouvertures voûtées.",cost:20},{text:"Le chiffre est entre 8 et 15.",cost:40},{text:"La réponse est 11.",cost:80}]},
+    en:{ nav:{title:'Roman Theatre',desc:"The Roman theatre faces the Cigognier Sanctuary.",address:'Rue du Théâtre, 1580 Avenches',distance:'~200 m from the Cigognier',mapsUrl:'https://maps.google.com/?q=Theatre+romain+Avenches'},
+      narrative:"Actors wore masks on this ancient stage. The thief carefully counted the access ways to plan his escape.",
+      question:"Spectators used vaulted corridors to reach their seats. How many of these passages — called vomitoria — were there?",
+      hints:[{text:"Walk along the base of the seating tiers and count the vaulted openings.",cost:20},{text:"The number is between 8 and 15.",cost:40},{text:"The answer is 11.",cost:80}]},
+    de:{ nav:{title:'Römisches Theater',desc:"Das römische Theater liegt gegenüber dem Cigognier-Heiligtum.",address:'Rue du Théâtre, 1580 Avenches',distance:'~200 m vom Cigognier',mapsUrl:'https://maps.google.com/?q=Theatre+romain+Avenches'},
+      narrative:"Schauspieler trugen auf dieser antiken Bühne Masken. Der Dieb zählte sorgfältig die Zugänge.",
+      question:"Die Zuschauer nutzten gewölbte Korridore, um ihre Sitzreihen zu erreichen. Wie viele dieser Durchgänge — Vomitorien genannt — gab es?",
+      hints:[{text:"Gehe entlang der Stufenbasis und zähle die gewölbten Öffnungen.",cost:20},{text:"Die Zahl liegt zwischen 8 und 15.",cost:40},{text:"Die Antwort ist 11.",cost:80}]}
+  },
+  { id:6, step:'VI', fragment:'X', clue:'NOTABLE', answers:['2.7','2,7'],
+    fr:{ nav:{title:'Théâtre Romain',desc:"Restez au Théâtre romain. Observez les gradins depuis la scène.",address:'Rue du Théâtre, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Theatre+romain+Avenches'},
+      narrative:"Les notables d'Aventicum avaient leur place d'honneur, séparés du peuple par une zone de prestige.",
+      question:"Au pied des gradins, une plate-forme spéciale était réservée aux notables. Quelle était sa largeur en mètres ?",
+      hints:[{text:"Le panneau décrit cette zone de prestige à la base de la cavea.",cost:20},{text:"La largeur est entre 2 et 3 mètres.",cost:40},{text:"La réponse est 2.7.",cost:80}]},
+    en:{ nav:{title:'Roman Theatre',desc:"Stay at the Roman Theatre. Observe the seating tiers from the stage.",address:'Rue du Théâtre, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Theatre+romain+Avenches'},
+      narrative:"The dignitaries of Aventicum had their seats of honour, separated from the people by a prestige zone.",
+      question:"At the foot of the seating tiers, a special platform was reserved for dignitaries. What was its width in metres?",
+      hints:[{text:"The information panel describes this prestige zone at the base of the cavea.",cost:20},{text:"The width is between 2 and 3 metres.",cost:40},{text:"The answer is 2.7.",cost:80}]},
+    de:{ nav:{title:'Römisches Theater',desc:"Bleibt am Römischen Theater. Beobachtet die Sitzreihen von der Bühne aus.",address:'Rue du Théâtre, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Theatre+romain+Avenches'},
+      narrative:"Die Würdenträger von Aventicum hatten ihre Ehrensitze, getrennt vom Volk durch eine Prestigezone.",
+      question:"Am Fuß der Sitzreihen war eine spezielle Plattform für Würdenträger reserviert. Wie breit war sie in Metern?",
+      hints:[{text:"Die Infotafel beschreibt diese Prestigezone an der Basis der Cavea.",cost:20},{text:"Die Breite liegt zwischen 2 und 3 Metern.",cost:40},{text:"Die Antwort ist 2.7.",cost:80}]}
+  },
+  { id:7, step:'VII', fragment:'X', clue:'BAIN', answers:['4'],
+    fr:{ nav:{title:'Thermes du Forum',desc:"Les fondations des thermes romains sont visibles depuis la rue principale.",address:'Place du Bourg, 1580 Avenches',distance:'~300 m du théâtre',mapsUrl:'https://maps.google.com/?q=Thermes+forum+Avenches'},
+      narrative:"Le voleur s'est lavé ici avant de commettre son crime. La salle la plus chaude gardait un nombre précis de bassins.",
+      question:"La salle la plus chaude des thermes, le caldarium, était équipée de baignoires et de vasques. Combien de bassins au total comptait cette salle ?",
+      hints:[{text:"Il y avait 2 baignoires et 2 vasques.",cost:20},{text:"Le chiffre est entre 3 et 6.",cost:40},{text:"La réponse est 4.",cost:80}]},
+    en:{ nav:{title:'Forum Baths',desc:"The foundations of the Roman baths are visible from the main street.",address:'Place du Bourg, 1580 Avenches',distance:'~300 m from the theatre',mapsUrl:'https://maps.google.com/?q=Thermes+forum+Avenches'},
+      narrative:"The thief washed here before committing his crime. The hottest room held a precise number of vessels.",
+      question:"The hottest room of the baths, the caldarium, was equipped with bathtubs and basins. How many water vessels in total did this room have?",
+      hints:[{text:"There were 2 bathtubs and 2 basins.",cost:20},{text:"The number is between 3 and 6.",cost:40},{text:"The answer is 4.",cost:80}]},
+    de:{ nav:{title:'Forumthermen',desc:"Die Fundamente der römischen Thermen sind von der Hauptstraße aus sichtbar.",address:'Place du Bourg, 1580 Avenches',distance:'~300 m vom Theater',mapsUrl:'https://maps.google.com/?q=Thermes+forum+Avenches'},
+      narrative:"Der Dieb wusch sich hier, bevor er sein Verbrechen beging. Der heißeste Raum beherbergte eine genaue Anzahl von Becken.",
+      question:"Der heißeste Raum der Thermen, das Caldarium, war mit Badewannen und Becken ausgestattet. Wie viele Wasserbehälter hatte dieser Raum insgesamt?",
+      hints:[{text:"Es gab 2 Badewannen und 2 Becken.",cost:20},{text:"Die Zahl liegt zwischen 3 und 6.",cost:40},{text:"Die Antwort ist 4.",cost:80}]}
+  },
+  { id:8, step:'VIII', fragment:'I', clue:'HYPOCAUSTE', answers:['HYPOCAUSTE','HYPOCAUST','HYPOKAUST'],
+    fr:{ nav:{title:'Thermes du Forum',desc:"Restez aux Thermes. Regardez sous le plancher des salles chauffées.",address:'Place du Bourg, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Thermes+forum+Avenches'},
+      narrative:"Sous vos pieds, un ingénieux système romain diffusait la chaleur. Ce mot était inscrit dans les notes secrètes du voleur.",
+      question:"Sous le plancher des salles chauffées, des petits piliers en terre cuite soulevaient le sol pour laisser circuler l'air chaud. Comment appelle-t-on ce système ?",
+      hints:[{text:"Regarde à travers le grillage — les petits piliers sont visibles.",cost:20},{text:"Le mot vient du latin hypo (sous) et caustum (chauffé).",cost:40},{text:"La réponse est HYPOCAUSTE.",cost:80}]},
+    en:{ nav:{title:'Forum Baths',desc:"Stay at the Baths. Look under the floor of the heated rooms.",address:'Place du Bourg, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Thermes+forum+Avenches'},
+      narrative:"Under your feet, an ingenious Roman system distributed heat. This word was written in the thief's secret notes.",
+      question:"Under the floor of the heated rooms, small terracotta pillars raised the floor to allow hot air to circulate. What is this underfloor heating system called?",
+      hints:[{text:"Look through the protective grille — the small pillars are visible.",cost:20},{text:"The word comes from Latin hypo (under) and caustum (heated).",cost:40},{text:"The answer is HYPOCAUST.",cost:80}]},
+    de:{ nav:{title:'Forumthermen',desc:"Bleibt an den Thermen. Schaut unter den Boden der beheizten Räume.",address:'Place du Bourg, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Thermes+forum+Avenches'},
+      narrative:"Unter euren Füßen verteilte ein ausgeklügeltes römisches System die Wärme. Dieses Wort stand in den geheimen Notizen des Diebes.",
+      question:"Unter dem Boden der beheizten Räume hoben kleine Terrakottapfeiler den Boden an, um Warmluft zirkulieren zu lassen. Wie nennt man dieses System?",
+      hints:[{text:"Schau durch das Schutzgitter — die kleinen Pfeiler sind sichtbar.",cost:20},{text:"Das Wort kommt vom Lateinischen hypo (unter) und caustum (geheizt).",cost:40},{text:"Die Antwort ist HYPOKAUST.",cost:80}]}
+  },
+  { id:9, step:'IX', fragment:'X', clue:'PIERRE', answers:['EN CREUX','RECESSED','EINGETIEFT'],
+    fr:{ nav:{title:'Tour Tornallaz',desc:"Montez vers la tour médiévale construite sur le tracé du mur d'enceinte romain.",address:'Rue de la Tornallaz, 1580 Avenches',distance:'~500 m des thermes',mapsUrl:'https://maps.google.com/?q=Tour+Tornallaz+Avenches'},
+      narrative:"La tour garde les traces des deux époques. Le voleur connaissait la différence entre le travail romain et médiéval.",
+      question:"La partie romaine de cette tour se reconnaît à ses petits moellons de calcaire jaune. Comment sont taillés les joints de la maçonnerie romaine ?",
+      hints:[{text:"Passe la main sur la base de la tour — les joints romains sont creusés à la pointe.",cost:20},{text:"L'opposé serait en relief ou à plat.",cost:40},{text:"La réponse est EN CREUX.",cost:80}]},
+    en:{ nav:{title:'Tornallaz Tower',desc:"Head up to the medieval tower built on the line of the Roman city wall.",address:'Rue de la Tornallaz, 1580 Avenches',distance:'~500 m from the baths',mapsUrl:'https://maps.google.com/?q=Tour+Tornallaz+Avenches'},
+      narrative:"The tower bears traces of two eras. The thief knew the difference between Roman and medieval craftsmanship.",
+      question:"The Roman part of this tower is recognisable by its small regular yellow limestone blocks. How are the joints of the Roman masonry cut?",
+      hints:[{text:"Run your hand over the base of the tower — the Roman joints are chiselled inward.",cost:20},{text:"The opposite would be raised or flat.",cost:40},{text:"The answer is RECESSED.",cost:80}]},
+    de:{ nav:{title:'Tornallaz-Turm',desc:"Geht zum mittelalterlichen Turm auf dem Verlauf der römischen Stadtmauer.",address:'Rue de la Tornallaz, 1580 Avenches',distance:'~500 m von den Thermen',mapsUrl:'https://maps.google.com/?q=Tour+Tornallaz+Avenches'},
+      narrative:"Der Turm trägt Spuren zweier Epochen. Der Dieb kannte den Unterschied zwischen römischer und mittelalterlicher Handwerkskunst.",
+      question:"Der römische Teil dieses Turms ist an seinen kleinen gelben Kalksteinblöcken erkennbar. Wie sind die Fugen des römischen Mauerwerks gearbeitet?",
+      hints:[{text:"Fahr mit der Hand über die Turmbasis — die römischen Fugen sind eingearbeitet.",cost:20},{text:"Das Gegenteil wäre erhaben oder flach.",cost:40},{text:"Die Antwort ist EINGETIEFT.",cost:80}]}
+  },
+  { id:10, step:'X', fragment:'R', clue:'TOUR', answers:['2'],
+    fr:{ nav:{title:'Tour Tornallaz',desc:"Restez à la Tour Tornallaz. Lisez le panneau d'entrée.",address:'Rue de la Tornallaz, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Tour+Tornallaz+Avenches'},
+      narrative:"De là-haut, on distingue chaque tour du mur romain. Le voleur les a toutes comptées.",
+      question:"L'enceinte d'Aventicum comptait 73 tours. Une seule est encore debout sur une bonne hauteur. Quel est son numéro officiel ?",
+      hints:[{text:"Le panneau à l'entrée indique la numérotation officielle des tours.",cost:20},{text:"C'est un très petit chiffre.",cost:40},{text:"La réponse est 2.",cost:80}]},
+    en:{ nav:{title:'Tornallaz Tower',desc:"Stay at the Tornallaz Tower. Read the entrance panel.",address:'Rue de la Tornallaz, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Tour+Tornallaz+Avenches'},
+      narrative:"From the top, you can make out every tower of the Roman wall. The thief counted them all.",
+      question:"Aventicum's walls had 73 towers. Only one still stands to a significant height. What is its official number?",
+      hints:[{text:"The panel at the entrance gives the official tower numbering.",cost:20},{text:"It is a very small number.",cost:40},{text:"The answer is 2.",cost:80}]},
+    de:{ nav:{title:'Tornallaz-Turm',desc:"Bleibt am Tornallaz-Turm. Lest die Eingangstafel.",address:'Rue de la Tornallaz, 1580 Avenches',distance:'0 m',mapsUrl:'https://maps.google.com/?q=Tour+Tornallaz+Avenches'},
+      narrative:"Von oben kann man jeden Turm der römischen Mauer erkennen. Der Dieb zählte sie alle.",
+      question:"Die Stadtmauer von Aventicum hatte 73 Türme. Nur einer steht noch in beträchtlicher Höhe. Was ist seine offizielle Nummer?",
+      hints:[{text:"Die Tafel am Eingang gibt die offizielle Turmnummerierung an.",cost:20},{text:"Es ist eine sehr kleine Zahl.",cost:40},{text:"Die Antwort ist 2.",cost:80}]}
+  },
+  { id:11, step:'XI', fragment:'A', clue:'PORTE', answers:['3'],
+    fr:{ nav:{title:"Porte de l'Est",desc:"La porte romaine monumentale se trouve sur le côté est du mur d'enceinte.",address:"Chemin de la Porte de l'Est, 1580 Avenches",distance:'~200 m de Tornallaz',mapsUrl:'https://maps.google.com/?q=Porte+Est+Avenches'},
+      narrative:"Le voleur est passé par cette porte. Il a mesuré chaque passage avant de choisir sa fuite.",
+      question:"Deux types de passages traversaient cette porte : piétons et charretiers. Quelle était la largeur en mètres des passages réservés aux chars ?",
+      hints:[{text:"Le panneau donne les dimensions exactes des passages.",cost:20},{text:"La largeur est entre 2 et 4 mètres.",cost:40},{text:"La réponse est 3.",cost:80}]},
+    en:{ nav:{title:"East Gate",desc:"The monumental Roman gate is on the east side of the city wall.",address:"Chemin de la Porte de l'Est, 1580 Avenches",distance:'~200 m from Tornallaz',mapsUrl:'https://maps.google.com/?q=Porte+Est+Avenches'},
+      narrative:"The thief passed through this gate. He measured each passage before choosing his escape route.",
+      question:"Two types of passages crossed this gate: pedestrian and cart lanes. What was the width in metres of the cart passages?",
+      hints:[{text:"The information panel gives the exact dimensions of the passages.",cost:20},{text:"The width is between 2 and 4 metres.",cost:40},{text:"The answer is 3.",cost:80}]},
+    de:{ nav:{title:"Osttor",desc:"Das monumentale römische Tor befindet sich auf der Ostseite der Stadtmauer.",address:"Chemin de la Porte de l'Est, 1580 Avenches",distance:'~200 m von Tornallaz',mapsUrl:'https://maps.google.com/?q=Porte+Est+Avenches'},
+      narrative:"Der Dieb passierte dieses Tor. Er maß jeden Durchgang, bevor er seine Fluchtroute wählte.",
+      question:"Zwei Durchgangstypen durchquerten dieses Tor: Fußgänger und Wagenspuren. Wie breit waren die Wagendurchfahrten in Metern?",
+      hints:[{text:"Die Infotafel gibt die genauen Abmessungen der Durchgänge an.",cost:20},{text:"Die Breite liegt zwischen 2 und 4 Metern.",cost:40},{text:"Die Antwort ist 3.",cost:80}]}
+  },
+  { id:12, step:'XII', fragment:'X', clue:'COUR', answers:['11.6','11,6'],
+    fr:{ nav:{title:"Porte de l'Est — Révélation",desc:"Restez à la Porte de l'Est pour la révélation finale.",address:"Chemin de la Porte de l'Est, 1580 Avenches",distance:'0 m',mapsUrl:'https://maps.google.com/?q=Porte+Est+Avenches'},
+      narrative:"Tout converge ici. Le voleur a signé son crime avec un nombre précis — la mesure exacte de cette cour.",
+      question:"Au cœur de cette porte se cachait une cour circulaire pour contrôler les accès. Quel était son diamètre en mètres ?",
+      hints:[{text:"Le tracé de la cour est visible au sol.",cost:20},{text:"Le diamètre est entre 10 et 13 mètres.",cost:40},{text:"La réponse est 11.6.",cost:80}]},
+    en:{ nav:{title:"East Gate — Revelation",desc:"Stay at the East Gate for the final revelation.",address:"Chemin de la Porte de l'Est, 1580 Avenches",distance:'0 m',mapsUrl:'https://maps.google.com/?q=Porte+Est+Avenches'},
+      narrative:"Everything converges here. The thief signed his crime with a precise number — the exact measure of this courtyard.",
+      question:"At the heart of this gate was a circular courtyard to control access. What was its diameter in metres?",
+      hints:[{text:"The outline of the courtyard is visible on the ground.",cost:20},{text:"The diameter is between 10 and 13 metres.",cost:40},{text:"The answer is 11.6.",cost:80}]},
+    de:{ nav:{title:"Osttor — Enthüllung",desc:"Bleibt am Osttor für die abschließende Enthüllung.",address:"Chemin de la Porte de l'Est, 1580 Avenches",distance:'0 m',mapsUrl:'https://maps.google.com/?q=Porte+Est+Avenches'},
+      narrative:"Alles läuft hier zusammen. Der Dieb signierte sein Verbrechen mit einer genauen Zahl — dem exakten Maß dieses Hofes.",
+      question:"Im Herzen dieses Tores befand sich ein kreisförmiger Hof zur Zugangskontrolle. Wie groß war sein Durchmesser in Metern?",
+      hints:[{text:"Der Grundriss des Hofes ist am Boden sichtbar.",cost:20},{text:"Der Durchmesser liegt zwischen 10 und 13 Metern.",cost:40},{text:"Die Antwort ist 11.6.",cost:80}]}
+  }
+];
+/* ══════ STATE ══════ */
+const G = {
+  teamName:'', code:'', currentScreen:'splash', currentStep:0,
+  score:1000, startTime:null, gameActive:false,
+  fragments:Array(12).fill(null),
+  clues:Array(12).fill(null),       // word-clues revealed on correct answer
+  hintLevel:Array(12).fill(0),
+  stepScored:Array(12).fill(false), stepFailed:Array(12).fill(false), savedCode:''
+};
+
+/* ══════ LOCALSTORAGE ══════ */
+const SAVE_KEY = 'aq_save_v2';
+function saveGame(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      teamName:G.teamName, code:G.code, savedCode:G.savedCode,
+      currentStep:G.currentStep, score:G.score, startTime:G.startTime,
+      fragments:G.fragments, clues:G.clues,
+      hintLevel:G.hintLevel, stepScored:G.stepScored, stepFailed:G.stepFailed,
+      lang:currentLang
+    }));
+  }catch(e){}
+}
+function loadGame(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw)return false;
+    const d=JSON.parse(raw);
+    if(!d.code||!d.teamName)return false;
+    Object.assign(G,{
+      teamName:d.teamName, code:d.code, savedCode:d.savedCode||d.code,
+      currentStep:d.currentStep||0, score:d.score||1000,
+      startTime:d.startTime||Date.now(),
+      fragments:d.fragments||Array(12).fill(null),
+      clues:d.clues||Array(12).fill(null),
+      hintLevel:d.hintLevel||Array(12).fill(0),
+      stepScored:d.stepScored||Array(12).fill(false),
+      stepFailed:d.stepFailed||Array(12).fill(false)
+    });
+    if(d.lang) currentLang=d.lang;
+    return true;
+  }catch(e){return false;}
+}
+function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
+
+/* ══════ MAP STATE ══════ */
+const _maps={};let _userPos=null,_gpsWatchId=null;
+const _userMarkers={},_targetMarkers={},_polylines={};
+
+/* ══════ PARTICLES ══════ */
+(function initParticles(){
+  const canvas=document.getElementById('particleCanvas'),ctx=canvas.getContext('2d');
+  let W,H,particles=[];
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  function makeParticle(){return{x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-0.5)*0.4,vy:-(Math.random()*0.6+0.2),size:Math.random()*2.5+0.5,alpha:Math.random()*0.6+0.1,life:0,maxLife:Math.random()*300+150};}
+  for(let i=0;i<60;i++){const p=makeParticle();p.life=Math.random()*p.maxLife;particles.push(p);}
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    for(let i=0;i<particles.length;i++){
+      const p=particles[i];p.life++;
+      if(p.life>p.maxLife){particles[i]=makeParticle();continue;}
+      const t=p.life/p.maxLife,fade=t<0.2?t/0.2:t>0.8?(1-t)/0.2:1;
+      p.x+=p.vx+Math.sin(p.life*0.02)*0.3;p.y+=p.vy;
+      ctx.save();ctx.globalAlpha=p.alpha*fade;
+      ctx.fillStyle=Math.random()>0.5?'#c9a84c':'#d4a017';
+      ctx.shadowColor='#c9a84c';ctx.shadowBlur=6;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();ctx.restore();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ══════ SOUND ══════ */
+function playParchmentSound(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)(),sr=ctx.sampleRate,dur=0.45;
+    const buf=ctx.createBuffer(1,Math.floor(sr*dur),sr),d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++){const t=i/d.length,env=t<0.12?t/0.12:Math.pow(1-t,1.4);d[i]=(Math.random()*2-1)*env*0.45;}
+    const src=ctx.createBufferSource();src.buffer=buf;
+    const hpf=ctx.createBiquadFilter();hpf.type='highpass';hpf.frequency.value=250;
+    const lpf=ctx.createBiquadFilter();lpf.type='lowpass';lpf.frequency.value=2800;
+    const gain=ctx.createGain();gain.gain.value=0.55;
+    src.connect(hpf);hpf.connect(lpf);lpf.connect(gain);gain.connect(ctx.destination);
+    src.start();src.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+
+/* ══════ BURST ══════ */
+function burstParticles(inputEl){
+  const rect=inputEl.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  const colors=['#c9a84c','#d4a017','#f0d060','#ffe878'];
+  for(let i=0;i<22;i++){
+    const p=document.createElement('div'),size=Math.random()*8+4;
+    p.style.cssText=`position:fixed;left:${cx}px;top:${cy}px;width:${size}px;height:${size}px;border-radius:50%;background:${colors[Math.floor(Math.random()*colors.length)]};pointer-events:none;z-index:501;box-shadow:0 0 ${size}px #c9a84c;`;
+    document.body.appendChild(p);
+    const angle=(i/22)*Math.PI*2+Math.random()*0.5,speed=Math.random()*90+50;
+    p.animate([{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:`translate(calc(-50% + ${Math.cos(angle)*speed}px),calc(-50% + ${Math.sin(angle)*speed}px)) scale(0)`,opacity:0}],{duration:700+Math.random()*400,easing:'cubic-bezier(0,0,0.2,1)',fill:'forwards'});
+    setTimeout(()=>p.remove(),1200);
+  }
+}
+
+function triggerScan(){const el=document.getElementById('scanLine');el.style.animation='none';void el.offsetWidth;el.style.animation='scanSweep 2.2s ease-in-out forwards';}
+
+/* ══════ SCREENS ══════ */
+let _transitionLock=false;
+function goToScreen(fullId){
+  if(_transitionLock)return;_transitionLock=true;
+  document.querySelectorAll('.screen.active').forEach(s=>{s.classList.remove('active');s.classList.add('exit');setTimeout(()=>{s.classList.remove('exit');s.style.display='none';},580);});
+  G.currentScreen=fullId;updateHUD();
+  setTimeout(()=>{
+    const el=document.getElementById('screen-'+fullId);
+    if(!el){_transitionLock=false;return;}
+    el.style.display='flex';el.scrollTop=0;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{el.classList.add('active');_transitionLock=false;}));
+  },160);
+}
+function showScreen(id){goToScreen(id);}
+function updateHUD(){
+  const show=G.gameActive||G.currentScreen==='meta';
+  document.getElementById('hud').style.display=show?'flex':'none';
+  document.getElementById('inventory').style.display=show?'flex':'none';
+}
+
+/* ══════ SPLASH ══════ */
+function runSplash(){
+  const eagle=document.getElementById('splashEagle'),light=document.getElementById('divineLight');
+  const titleEl=document.getElementById('splashTitle'),sub=document.getElementById('splashSub');
+  const titleText='AVENTICUM QUEST';
+  setTimeout(()=>{light.style.opacity='1';light.style.transition='opacity 1s ease';eagle.style.opacity='1';},300);
+  titleText.split('').forEach((ch,i)=>{const span=document.createElement('span');span.textContent=ch;titleEl.appendChild(span);setTimeout(()=>{span.style.opacity='1';},800+i*80);});
+  setTimeout(()=>{sub.style.opacity='1';},800+titleText.length*80+200);
+  setTimeout(()=>goToScreen('code'),3400);
+}
+
+/* ══════ CODE ══════ */
+function submitCode(){
+  const code=document.getElementById('codeInput').value.trim().toUpperCase();
+  const team=document.getElementById('teamInput').value.trim();
+  const errEl=document.getElementById('codeError');
+  if(!code){shakeElement(document.getElementById('codeInput'));return;}
+  if(!VALID_CODES.includes(code)){errEl.style.display='block';shakeElement(document.querySelector('#screen-code .card'));return;}
+  if(!team){shakeElement(document.getElementById('teamInput'));document.getElementById('teamInput').focus();return;}
+  errEl.style.display='none';
+  G.teamName=team;G.code=code;G.savedCode=code;
+  const btn=document.querySelector('#screen-code .btn-primary');
+  btn.classList.add('seal-anim');
+  setTimeout(()=>showBriefing(),600);
+}
+
+/* ══════ BRIEFING ══════ */
+function showBriefing(){
+  goToScreen('briefing');
+  const text=BRIEFING_TEXTS[currentLang].replace('[TEAM]',G.teamName);
+  const el=document.getElementById('briefingText');el.innerHTML='';
+  let i=0;
+  const cursor=document.createElement('span');cursor.className='cursor-blink';el.appendChild(cursor);
+  function type(){
+    if(i<text.length){
+      const ch=text[i];
+      if(ch==='\n'){cursor.before(document.createElement('br'));cursor.before(document.createElement('br'));}
+      else{cursor.before(document.createTextNode(ch));}
+      i++;setTimeout(type,ch==='\n'?150:18);
+    }else{
+      cursor.remove();
+      const btn=document.getElementById('startMissionBtn');
+      btn.style.display='flex';btn.style.animation='sealStamp 0.5s ease forwards';
+    }
+  }
+  type();
+}
+
+/* ══════ START ══════ */
+function startMission(){
+  triggerFlash();G.gameActive=true;G.startTime=Date.now();G.score=1000;G.currentStep=0;
+  G.fragments=Array(12).fill(null);G.clues=Array(12).fill(null);
+  G.hintLevel=Array(12).fill(0);
+  G.stepScored=Array(12).fill(false);G.stepFailed=Array(12).fill(false);
+  buildInventory();startGPS();saveGame();showEnigma(0);
+}
+function resumeMission(){
+  G.gameActive=true;
+  document.getElementById('hud').style.display='flex';
+  document.getElementById('inventory').style.display='flex';
+  buildInventory();
+  startGPS();
+  showEnigma(G.currentStep);
+}
+
+/* ══════ GPS ══════ */
+function startGPS(){
+  if(!navigator.geolocation)return;
+  _gpsWatchId=navigator.geolocation.watchPosition(
+    pos=>{_userPos=[pos.coords.latitude,pos.coords.longitude];updateAllUserMarkers();},
+    ()=>{_userPos=null;},
+    {enableHighAccuracy:true,maximumAge:5000,timeout:15000}
+  );
+}
+function updateAllUserMarkers(){if(!_userPos)return;Object.keys(_maps).forEach(idx=>updateMapUserPos(parseInt(idx)));}
+function updateMapUserPos(idx){
+  if(!_maps[idx]||!_userPos)return;
+  const latlng=L.latLng(_userPos[0],_userPos[1]);
+  if(_userMarkers[idx]){_userMarkers[idx].setLatLng(latlng);}
+  else{const icon=L.divIcon({className:'',html:'<div class="user-marker"></div>',iconSize:[14,14],iconAnchor:[7,7]});_userMarkers[idx]=L.marker(latlng,{icon}).addTo(_maps[idx]);}
+  const target=L.latLng(ENIGMA_COORDS[idx][0],ENIGMA_COORDS[idx][1]);
+  if(_polylines[idx]){_maps[idx].removeLayer(_polylines[idx]);}
+  _polylines[idx]=L.polyline([latlng,target],{color:'#e74c3c',weight:2,opacity:0.7,dashArray:'6, 4'}).addTo(_maps[idx]);
+  try{_maps[idx].fitBounds(L.latLngBounds([latlng,target]).pad(0.3));}catch(e){}
+}
+
+/* ══════ MAP ══════ */
+function initEnigmaMap(idx){
+  if(_maps[idx]){setTimeout(()=>{try{_maps[idx].invalidateSize();}catch(e){}},220);if(_userPos)updateMapUserPos(idx);return;}
+  const container=document.getElementById('map-'+idx);if(!container)return;
+  const coords=ENIGMA_COORDS[idx];
+  const map=L.map(container,{center:coords,zoom:16,zoomControl:true,attributionControl:true,dragging:true,scrollWheelZoom:false});
+  _maps[idx]=map;
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
+  const goldIcon=L.divIcon({className:'',html:`<div style="width:16px;height:16px;border-radius:50%;background:#c9a84c;border:2px solid #f0d060;box-shadow:0 0 10px rgba(201,168,76,0.8);"></div>`,iconSize:[16,16],iconAnchor:[8,8]});
+  _targetMarkers[idx]=L.marker(coords,{icon:goldIcon}).bindPopup(`<span style="font-family:serif;color:#c9a84c;font-size:12px">${ENIGMAS[idx][currentLang].nav.title}</span>`).addTo(map);
+  const msgEl=document.getElementById('map-msg-'+idx);if(!_userPos&&msgEl)msgEl.style.display='block';
+  if(_userPos)updateMapUserPos(idx);
+  setTimeout(()=>{try{map.invalidateSize();}catch(e){}},250);
+}
+
+/* ══════ SCORE ══════ */
+function addScore(delta){
+  G.score=Math.max(0,G.score+delta);
+  document.getElementById('hudScore').innerHTML=G.score+` pts<small id="scoreLabel">${t('scoreLabel')}</small>`;
+}
+
+/* ══════ INVENTORY ══════ */
+function buildInventory(){
+  const el=document.getElementById('invFragments');el.innerHTML='';
+  for(let i=0;i<12;i++){
+    const slot=document.createElement('div');
+    slot.className='inv-slot';slot.id='slot-'+i;
+    el.appendChild(slot);
+  }
+  G.clues.forEach((c,i)=>{if(c)revealClue(i,false);});
+}
+function revealClue(stepIndex,withAnim){
+  const clue=ENIGMAS[stepIndex].clue;
+  G.clues[stepIndex]=clue;
+  G.fragments[stepIndex]=clue;
+  const slot=document.getElementById('slot-'+stepIndex);if(!slot)return;
+  slot.classList.add('revealed');
+  if(withAnim){slot.classList.add('dropping');setTimeout(()=>slot.classList.remove('dropping'),900);}
+}
+
+/* ══════ ENIGMA SCREENS ══════ */
+function buildEnigmaScreens(){
+  const container=document.getElementById('enigmaContainer');container.innerHTML='';
+  ENIGMAS.forEach((e,idx)=>{
+    const div=document.createElement('div');
+    div.id='screen-enigma-'+idx;div.className='screen enigma-screen';
+    div.innerHTML=buildEnigmaHTML(e,idx);
+    container.appendChild(div);
+  });
+}
+
+function buildEnigmaHTML(e,idx){
+  const loc=e[currentLang];
+  const hintBtns=loc.hints.map((h,hi)=>
+    `<button class="btn btn-sm" style="margin-right:0.4rem;margin-bottom:0.4rem" onclick="useHint(${idx},${hi})">
+      ${t('hint')} ${hi+1} <span style="color:#e74c3c;font-size:0.7rem">(-${h.cost} pts)</span>
+    </button>`
+  ).join('');
+  return `
+  <div class="scroll-container">
+    <div class="nav-section">
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+        <span class="nav-compass">🧭</span>
+        <span class="nav-dest-label">${t('nextDest')}</span>
+      </div>
+      <div class="nav-monument">${loc.nav.title}</div>
+      <div class="nav-address">📍 ${loc.nav.address}</div>
+      <div class="nav-distance">📏 ${loc.nav.distance}</div>
+      <div style="margin-top:0.6rem;font-size:0.85rem;color:rgba(250,247,240,0.6);font-style:italic">${loc.nav.desc}</div>
+      <a href="${loc.nav.mapsUrl}" target="_blank" rel="noopener" class="btn btn-sm" style="display:inline-flex;margin-top:0.8rem;text-decoration:none">
+        🗺️ ${t('openMaps')}
+      </a>
+    </div>
+    <div class="map-section">
+      <div class="map-label">${t('realTimePos')}</div>
+      <div id="map-${idx}" class="enigma-map"></div>
+      <div id="map-msg-${idx}" class="map-no-gps">${t('gpsOff')}</div>
+    </div>
+    <div class="sep"></div>
+    <div class="enigma-section">
+      <div style="text-align:center;margin-bottom:1rem">
+        <div class="step-badge">${t('stepLabel')}</div>
+        <div class="step-num">${e.step}</div>
+      </div>
+      <p class="narrative-text">${loc.narrative}</p>
+      <div class="question-box">${loc.question}</div>
+      <div id="answerArea-${idx}">
+        <input type="text" id="answerInput-${idx}" class="input-field" placeholder="${t('answerPlaceholder')}"
+          style="margin-bottom:0.6rem" autocomplete="off" spellcheck="false"
+          onkeydown="if(event.key==='Enter') checkAnswer(${idx})">
+        <button class="btn btn-primary" onclick="checkAnswer(${idx})" style="width:100%">${t('confirmBtn')}</button>
+      </div>
+      <div id="feedback-${idx}" class="feedback" style="display:none;margin-top:0.8rem"></div>
+      <div class="sep-sm sep" style="margin-top:1rem"></div>
+      <div style="margin-top:0.5rem">
+        <a href="tel:+41772886252" class="btn btn-sm btn-support" style="text-decoration:none;opacity:0.55">
+          ${t('supportBtn')}
+        </a>
+      </div>
+    </div>
+    <div style="height:1rem"></div>
+  </div>`;
+}
+
+function showEnigma(idx){
+  G.currentStep=idx;goToScreen('enigma-'+idx);updateProgress(idx);playParchmentSound();
+  setTimeout(()=>initEnigmaMap(idx),350);
+}
+function updateProgress(idx){document.getElementById('progressFill').style.width=(idx/12*100)+'%';}
+
+/* ══════ NORMALIZE ══════ */
+function normalize(str){
+  return str.trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ');
+}
+
+/* ══════ CHECK ANSWER ══════ */
+function checkAnswer(idx){
+  const input=document.getElementById('answerInput-'+idx);
+  const fb=document.getElementById('feedback-'+idx);
+  const val=normalize(input.value);
+  if(!val){shakeElement(input);return;}
+  const allAnswers=ENIGMAS[idx].answers.map(a=>normalize(a));
+  const correct=allAnswers.some(a=>val===a);
+  if(correct){
+    const firstTime=!G.stepFailed[idx];
+    const clueWord=ENIGMAS[idx].clue;
+    if(!G.stepScored[idx]&&firstTime){
+      addScore(100);G.stepScored[idx]=true;
+      revealClue(idx,true);burstParticles(input);triggerFlash();
+      fb.className='feedback success';fb.style.display='block';
+      // Show the clue word prominently
+      fb.innerHTML=t('correctFirst')+`<div class="clue-word-reveal">🔑 ${clueWord}</div>`;
+    }else{
+      revealClue(idx,false);
+      fb.className='feedback info';fb.style.display='block';
+      fb.innerHTML=t('correctRetry')+`<div class="clue-word-reveal">🔑 ${clueWord}</div>`;
+    }
+    input.disabled=true;
+    const confirmBtn=document.querySelector(`#answerArea-${idx} .btn-primary`);
+    if(confirmBtn)confirmBtn.disabled=true;
+    saveGame();
+    if(idx<11){setTimeout(()=>showEnigma(idx+1),2800);}
+    else{setTimeout(()=>showMeta(),2800);}
+  }else{
+    if(!G.stepFailed[idx])G.stepFailed[idx]=true;
+    G.stepScored[idx]=false;
+    fb.className='feedback error';fb.style.display='block';
+    fb.textContent=t('wrong');
+    shakeElement(document.getElementById('screen-enigma-'+idx));
+    input.value='';input.focus();
+    saveGame();
+  }
+}
+
+/* ══════ HINTS ══════ */
+function toggleHintPanel(idx){const panel=document.getElementById('hintPanel-'+idx);panel.style.display=panel.style.display==='none'?'block':'none';}
+function useHint(idx,hintIdx){
+  const e=ENIGMAS[idx][currentLang];
+  if(G.hintLevel[idx]>hintIdx)return;
+  let cost=0;for(let i=G.hintLevel[idx];i<=hintIdx;i++)cost+=e.hints[i].cost;
+  addScore(-cost);G.hintLevel[idx]=hintIdx+1;
+  const container=document.getElementById('hintItems-'+idx);container.innerHTML='';
+  for(let i=0;i<=hintIdx;i++){const d=document.createElement('div');d.className='hint-item';d.textContent=e.hints[i].text;container.appendChild(d);}
+}
+
+/* ══════ META ══════ */
+function showMeta(){
+  const el=document.getElementById('metaFragments');el.innerHTML='';
+  const collectedClues=G.clues.filter(c=>c);
+  G.clues.forEach((clue,i)=>{
+    const card=document.createElement('div');
+    card.className='clue-display-card'+(clue?'':' missing');
+    card.textContent=clue||(i+1);
+    el.appendChild(card);
+  });
+  // Update meta narrative with clue count
+  const narrative=document.getElementById('metaNarrative');
+  if(narrative){
+    const msgs={fr:`Vous avez collecté ${collectedClues.length}/12 indices. Ces mots révèlent l'identité du voleur — utilisez-les pour trouver le nom de la légion.`,
+    en:`You collected ${collectedClues.length}/12 clues. These words reveal the thief's identity — use them to find the legion's name.`,
+    de:`Ihr habt ${collectedClues.length}/12 Hinweise gesammelt. Diese Wörter enthüllen die Identität des Diebes — nutzt sie, um den Legionsnamen zu finden.`};
+    narrative.textContent=msgs[currentLang];
+  }
+  updateProgress(12);goToScreen('meta');playParchmentSound();
+}
+function checkMeta(){
+  const val=normalize(document.getElementById('metaInput').value);
+  const correct=normalize('LEGIO XXI RAPAX');
+  const fb=document.getElementById('metaFeedback');
+  if(val===correct){
+    fb.style.display='none';G.gameActive=false;
+    clearSave(); // clear save on completion
+    triggerFlash();setTimeout(()=>showVictory(),800);
+  }else{
+    fb.className='feedback error';fb.style.display='block';
+    fb.textContent=t('metaWrong');
+    shakeElement(document.getElementById('screen-meta'));
+  }
+}
+
+/* ══════ VICTORY ══════ */
+function showVictory(){
+  const elapsed=Math.floor((Date.now()-G.startTime)/1000);
+  const mins=Math.floor(elapsed/60),secs=elapsed%60;
+  G.gameActive=false;
+  if(_gpsWatchId!==null){navigator.geolocation.clearWatch(_gpsWatchId);_gpsWatchId=null;}
+  goToScreen('victory');
+  setTimeout(()=>{const el=document.getElementById('victoryEagle');el.style.opacity='1';el.classList.add('eagle-victory');launchConfetti();},400);
+  document.getElementById('victoryTeam').textContent=G.teamName;
+  document.getElementById('victoryTime').textContent=`${t('duration')} : ${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+  document.getElementById('victoryScore').textContent=G.score+' pts';
+  const ranks=translations[currentLang].ranks;
+  const r=ranks.find(rk=>G.score>=rk.min)||ranks[ranks.length-1];
+  document.getElementById('victoryRank').textContent=r.icon+' '+r.label;
+  document.getElementById('victoryMsg').textContent=t('victoryMsg',G.teamName);
+}
+
+function launchConfetti(){
+  const colors=['#c9a84c','#d4a017','#f0d060','#faf7f0','#e8c86a'];
+  for(let i=0;i<60;i++){setTimeout(()=>{const piece=document.createElement('div');piece.className='confetti-piece';piece.style.left=Math.random()*100+'vw';piece.style.background=colors[Math.floor(Math.random()*colors.length)];piece.style.animationDuration=(Math.random()*2+2)+'s';document.body.appendChild(piece);setTimeout(()=>piece.remove(),5000);},i*80);}
+}
+
+function reviewLink(){window.open('#','_blank');}
+function shareVictory(){
+  const text=t('shareText',G.score,G.teamName);
+  if(navigator.share){navigator.share({title:'Aventicum Quest',text}).catch(()=>{});}
+  else{prompt('',text);}
+}
+
+/* ══════ UTILS ══════ */
+function shakeElement(el){el.classList.remove('shaking');void el.offsetWidth;el.classList.add('shaking');setTimeout(()=>el.classList.remove('shaking'),600);}
+function triggerFlash(){const fl=document.getElementById('flashOverlay');fl.classList.remove('flashing');void fl.offsetWidth;fl.classList.add('flashing');}
+function restartMission(){G.gameActive=false;document.getElementById('codeInput').value=G.savedCode;document.getElementById('teamInput').value=G.teamName;document.getElementById('codeError').style.display='none';goToScreen('code');}
+
+/* ══════ BOOT ══════ */
+document.addEventListener('DOMContentLoaded',()=>{
+  buildEnigmaScreens();
+  document.querySelectorAll('.screen').forEach(s=>{
+    if(s.id==='screen-splash'){s.style.display='flex';s.classList.add('active');}
+    else{s.style.display='none';s.classList.remove('active');}
+  });
+  runSplash();
+  setTimeout(triggerScan,10000);
+  setInterval(triggerScan,10000);
+  // Check for saved game after splash
+  setTimeout(()=>{
+    if(loadGame()){
+      // Show resume banner on code screen
+      const resumeDiv=document.createElement('div');
+      resumeDiv.id='resumeBanner';
+      resumeDiv.style.cssText='background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.5);border-radius:6px;padding:0.8rem 1rem;margin-bottom:0.8rem;text-align:center;';
+      resumeDiv.innerHTML=`<div style="font-family:Cinzel,serif;font-size:0.75rem;letter-spacing:0.15em;color:var(--gold);margin-bottom:0.5rem">🔱 MISSION EN COURS — ${G.teamName}</div>
+      <div style="font-size:0.85rem;color:rgba(250,247,240,0.7);margin-bottom:0.7rem">Étape ${G.currentStep+1}/12 · ${G.score} pts</div>
+      <button class="btn btn-primary" onclick="resumeMission()" style="width:100%;font-size:0.8rem;padding:0.6rem">⚔️ REPRENDRE LA MISSION</button>
+      <div style="margin-top:0.5rem"><a onclick="clearSave();document.getElementById('resumeBanner').remove()" style="font-size:0.7rem;color:rgba(201,168,76,0.4);cursor:pointer;text-decoration:underline">Nouvelle partie</a></div>`;
+      const card=document.querySelector('#screen-code .card');
+      if(card)card.prepend(resumeDiv);
+      // pre-fill inputs
+      const ci=document.getElementById('codeInput');const ti=document.getElementById('teamInput');
+      if(ci)ci.value=G.savedCode;if(ti)ti.value=G.teamName;
+      setLang(currentLang);
+    }
+  },3500);
+});
+</script>
+</body>
+</html>
