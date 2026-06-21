@@ -1,327 +1,116 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Conditions Générales de Vente — Aventicum Quest</title>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #1a0f02;
-    --gold: #c9a84c;
-    --gold2: #d4a017;
-    --cream: #faf7f0;
-    --panel: #231508;
-    --border: rgba(201,168,76,0.3);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--bg);
-    color: var(--cream);
-    font-family: 'Crimson Text', Georgia, serif;
-    font-size: 18px;
-    line-height: 1.75;
-    min-height: 100vh;
-  }
-  body::before {
-    content: '';
-    position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    opacity: 0.035;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-size: 200px 200px;
-  }
-
-  /* Header */
-  header {
-    border-bottom: 1px solid var(--border);
-    padding: 1.5rem 1.5rem 1.2rem;
-    text-align: center;
-    position: relative; z-index: 1;
-    background: rgba(18,10,1,0.7);
-  }
-  .site-name {
-    font-family: 'Cinzel', serif;
-    font-size: clamp(1rem, 3vw, 1.3rem);
-    font-weight: 700;
-    color: var(--gold);
-    letter-spacing: 0.2em;
-    text-decoration: none;
-    display: block;
-    margin-bottom: 0.3rem;
-  }
-  .page-title {
-    font-family: 'Cinzel', serif;
-    font-size: clamp(1.2rem, 4vw, 1.8rem);
-    font-weight: 600;
-    color: var(--cream);
-    letter-spacing: 0.08em;
-  }
-  .update-date {
-    font-size: 0.85rem;
-    color: rgba(201,168,76,0.5);
-    margin-top: 0.4rem;
-    letter-spacing: 0.05em;
-  }
-
-  /* Layout */
-  .container {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 2.5rem 1.5rem 4rem;
-    position: relative; z-index: 1;
-  }
-
-  /* TOC */
-  .toc {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 1.2rem 1.5rem;
-    margin-bottom: 3rem;
-  }
-  .toc-title {
-    font-family: 'Cinzel', serif;
-    font-size: 0.7rem;
-    letter-spacing: 0.3em;
-    color: rgba(201,168,76,0.55);
-    margin-bottom: 0.8rem;
-  }
-  .toc ol { padding-left: 1.2rem; }
-  .toc li { margin-bottom: 0.3rem; }
-  .toc a {
-    color: rgba(250,247,240,0.65);
-    text-decoration: none;
-    font-size: 0.95rem;
-    transition: color 0.2s;
-  }
-  .toc a:hover { color: var(--gold); }
-
-  /* Sections */
-  section { margin-bottom: 2.8rem; }
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.6rem;
-    border-bottom: 1px solid rgba(201,168,76,0.2);
-  }
-  .section-num {
-    font-family: 'Cinzel', serif;
-    font-size: 0.65rem;
-    letter-spacing: 0.25em;
-    color: rgba(201,168,76,0.45);
-    flex-shrink: 0;
-  }
-  h2 {
-    font-family: 'Cinzel', serif;
-    font-size: clamp(1rem, 2.5vw, 1.2rem);
-    font-weight: 600;
-    color: var(--gold);
-    letter-spacing: 0.06em;
-  }
-  p { margin-bottom: 0.9rem; color: rgba(250,247,240,0.85); }
-  p:last-child { margin-bottom: 0; }
-  strong { color: var(--cream); font-weight: 600; }
-  a { color: var(--gold); text-decoration: underline; text-underline-offset: 3px; }
-
-  /* Info box */
-  .info-box {
-    background: rgba(201,168,76,0.07);
-    border: 1px solid rgba(201,168,76,0.3);
-    border-left: 3px solid var(--gold);
-    border-radius: 4px;
-    padding: 1rem 1.2rem;
-    margin: 1rem 0;
-    font-size: 0.95rem;
-  }
-  .info-box p { margin-bottom: 0.4rem; }
-
-  /* Divider */
-  .sep {
-    width: 200px; height: 1px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
-    margin: 2.5rem auto;
-  }
-
-  /* Footer */
-  footer {
-    border-top: 1px solid var(--border);
-    padding: 1.5rem;
-    text-align: center;
-    font-size: 0.85rem;
-    color: rgba(201,168,76,0.4);
-    letter-spacing: 0.05em;
-    position: relative; z-index: 1;
-  }
-  footer a { color: rgba(201,168,76,0.6); }
-
-  @media (max-width: 480px) {
-    .container { padding: 1.5rem 1rem 3rem; }
-    header { padding: 1.2rem 1rem 1rem; }
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conditions générales de vente — Aventicum Quest</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="legal.css">
 </head>
 <body>
-
-<header>
-  <a href="https://aventicumquest.ch" class="site-name">⚔ AVENTICUM QUEST</a>
-  <div class="page-title">Conditions Générales de Vente</div>
-  <div class="update-date">En vigueur au 9 juin 2026</div>
-</header>
-
-<div class="container">
-
-  <div class="toc">
-    <div class="toc-title">SOMMAIRE</div>
-    <ol>
-      <li><a href="#vendeur">Vendeur</a></li>
-      <li><a href="#objet">Objet et description du service</a></li>
-      <li><a href="#commande">Processus de commande</a></li>
-      <li><a href="#prix">Prix et paiement</a></li>
-      <li><a href="#livraison">Livraison du code d'accès</a></li>
-      <li><a href="#retractation">Rétractation et remboursement</a></li>
-      <li><a href="#responsabilite">Responsabilité et sécurité</a></li>
-      <li><a href="#propriete">Propriété intellectuelle</a></li>
-      <li><a href="#donnees">Données personnelles</a></li>
-      <li><a href="#droit">Droit applicable et litiges</a></li>
-      <li><a href="#contact">Contact</a></li>
-    </ol>
-  </div>
-
-  <!-- 1 -->
-  <section id="vendeur">
-    <div class="section-header">
-      <span class="section-num">ART. 1</span>
-      <h2>Vendeur</h2>
+  <nav id="nav" role="navigation">
+    <a href="index.html" class="nav-logo">
+      <img src="images/logo.svg" alt="" class="nav-logo-img" width="36" height="36" aria-hidden="true">
+      <span class="nav-logo-text">Aventicum Quest</span>
+    </a>
+    <div class="nav-right">
+      <a href="index.html#tarifs" class="nav-cta">Acheter</a>
     </div>
-    <div class="info-box">
-      <p><strong>Nom :</strong> Bjorn Vollenweider</p>
-      <p><strong>Adresse :</strong> Chemin de la Fin 9, 1580 Oleyres, Suisse</p>
-      <p><strong>E-mail :</strong> <a href="mailto:info@aventicumquest.ch">info@aventicumquest.ch</a></p>
-      <p><strong>Site :</strong> <a href="https://aventicumquest.ch">aventicumquest.ch</a></p>
+  </nav>
+
+  <main class="legal-page">
+    <header class="legal-header">
+      <p class="legal-back"><a href="index.html">← Retour à l'accueil</a></p>
+      <h1 class="legal-title">Conditions générales de vente</h1>
+      <p class="legal-date">Dernière mise à jour : juin 2026</p>
+    </header>
+
+    <div class="legal-body">
+
+      <section id="art1">
+        <h2>Art. 1 — Vendeur</h2>
+        <p><strong>Aventicum Quest</strong>, exploité par Bjorn Vollenweider, 1580 Avenches, Suisse.<br>
+        Contact : <a href="mailto:info@aventicumquest.ch">info@aventicumquest.ch</a></p>
+      </section>
+
+      <section id="art2">
+        <h2>Art. 2 — Objet</h2>
+        <p>Les présentes conditions régissent la vente en ligne de codes d'accès au jeu de piste urbain <em>Aventicum Quest — Operatio Aquila</em>, accessible via aventicumquest.ch, à pratiquer sur le site archéologique d'Avenches (VD, Suisse).</p>
+      </section>
+
+      <section id="art3">
+        <h2>Art. 3 — Prix</h2>
+        <p>Les prix sont indiqués en francs suisses (CHF), TVA incluse :</p>
+        <ul>
+          <li>Adulte (16 ans et +) : <strong>12 CHF</strong></li>
+          <li>Enfant (6–15 ans) : <strong>8 CHF</strong></li>
+          <li>Moins de 6 ans : <strong>gratuit</strong></li>
+        </ul>
+        <p>Un seul code est nécessaire par participant adulte ou enfant (6 ans et +). Les enfants de moins de 6 ans ne nécessitent pas de code.</p>
+      </section>
+
+      <section id="art4">
+        <h2>Art. 4 — Commande et paiement</h2>
+        <p>La commande est passée via le site aventicumquest.ch. Le paiement est traité de façon sécurisée par <strong>Stripe, Inc.</strong> Les informations de paiement ne sont jamais stockées par Aventicum Quest.</p>
+        <p>La vente est réputée conclue à réception de la confirmation de paiement.</p>
+      </section>
+
+      <section id="art5">
+        <h2>Art. 5 — Livraison du code</h2>
+        <p>Le code d'accès est transmis par e-mail à l'adresse indiquée lors de la commande, dans les 15 minutes suivant la confirmation de paiement. En cas de non-réception, vérifiez vos courriers indésirables ou contactez <a href="mailto:info@aventicumquest.ch">info@aventicumquest.ch</a>.</p>
+        <p>Le code est valable <strong>6 mois</strong> à compter de la date d'achat. Il est à usage unique et ne peut être utilisé que sur un seul appareil à la fois.</p>
+      </section>
+
+      <section id="art6">
+        <h2>Art. 6 — Rétractation et remboursement</h2>
+        <p>Conformément à l'art. 40d CO suisse, le droit de révocation s'applique dans un délai de 14 jours à compter de l'achat, <strong>à condition que le code n'ait pas encore été utilisé</strong>. Une fois le code activé, aucun remboursement ne peut être accordé.</p>
+        <p>Pour exercer votre droit de rétractation, contactez <a href="mailto:info@aventicumquest.ch">info@aventicumquest.ch</a> en indiquant votre numéro de commande.</p>
+      </section>
+
+      <section id="art7">
+        <h2>Art. 7 — Responsabilité et sécurité</h2>
+        <p>Le jeu se pratique en plein air sur la voie publique et des espaces ouverts au public. Chaque participant est responsable de sa propre sécurité. Aventicum Quest ne saurait être tenu responsable d'accidents, blessures ou dommages survenus lors de la pratique du jeu.</p>
+        <p>Le jeu est déconseillé par temps d'orage. Les participants mineurs doivent être accompagnés d'un adulte responsable.</p>
+      </section>
+
+      <section id="art8">
+        <h2>Art. 8 — Propriété intellectuelle</h2>
+        <p>L'ensemble du contenu du jeu (textes, énigmes, illustrations, interface) est la propriété exclusive d'Aventicum Quest. Toute reproduction, même partielle, est interdite sans autorisation préalable.</p>
+      </section>
+
+      <section id="art9">
+        <h2>Art. 9 — Données personnelles</h2>
+        <p>Le traitement des données personnelles est décrit dans notre <a href="confidentialite.html">politique de confidentialité</a>.</p>
+      </section>
+
+      <section id="art10">
+        <h2>Art. 10 — Droit applicable et litiges</h2>
+        <p>Les présentes conditions sont soumises au droit suisse. Tout litige relève de la compétence exclusive des tribunaux du canton de Vaud, sous réserve d'un recours devant le Tribunal fédéral.</p>
+      </section>
+
+      <section id="art11">
+        <h2>Art. 11 — Contact</h2>
+        <p>Pour toute question relative à une commande :<br>
+        <a href="mailto:info@aventicumquest.ch">info@aventicumquest.ch</a></p>
+      </section>
+
     </div>
-  </section>
+  </main>
 
-  <!-- 2 -->
-  <section id="objet">
-    <div class="section-header">
-      <span class="section-num">ART. 2</span>
-      <h2>Objet et description du service</h2>
+  <footer>
+    <div class="footer-inner">
+      <p class="footer-logo">Aventicum Quest</p>
+      <nav class="footer-links">
+        <a href="mentions-legales.html">Mentions légales</a>
+        <span class="footer-sep">·</span>
+        <a href="cgv.html">Conditions générales</a>
+        <span class="footer-sep">·</span>
+        <a href="confidentialite.html">Confidentialité</a>
+      </nav>
+      <p class="footer-copy">© 2026 Aventicum Quest · Avenches, Suisse</p>
     </div>
-    <p>Aventicum Quest est un jeu de piste extérieur payant se déroulant sur le site archéologique romain d'Avenches (Suisse). Les participants reçoivent, après paiement, un code d'accès unique leur permettant de jouer via l'interface en ligne disponible sur <a href="https://aventicumquest.ch">aventicumquest.ch</a>.</p>
-    <p>Le jeu consiste à résoudre une série d'énigmes sur le terrain, en visitant les monuments romains de la ville. La durée estimée est de 60 à 90 minutes. Le jeu est disponible en français, allemand et anglais.</p>
-    <p>Le service est une <strong>prestation numérique à usage unique</strong> : chaque code d'accès permet une seule partie. Le jeu nécessite un smartphone avec connexion Internet et GPS activés.</p>
-  </section>
+  </footer>
 
-  <!-- 3 -->
-  <section id="commande">
-    <div class="section-header">
-      <span class="section-num">ART. 3</span>
-      <h2>Processus de commande</h2>
-    </div>
-    <p>La commande s'effectue en ligne via la page d'achat du site. L'acheteur sélectionne le nombre de participants (adultes et/ou enfants), procède au paiement, puis reçoit par e-mail son code d'accès unique au format <strong>AQUILA-XXXX</strong>.</p>
-    <p>Le contrat de vente est réputé conclu au moment de la confirmation de paiement par le prestataire de paiement (Stripe). Un e-mail de confirmation est envoyé automatiquement à l'adresse fournie lors de l'achat.</p>
-  </section>
-
-  <!-- 4 -->
-  <section id="prix">
-    <div class="section-header">
-      <span class="section-num">ART. 4</span>
-      <h2>Prix et paiement</h2>
-    </div>
-    <p>Les prix en vigueur sont indiqués sur la page d'achat du site <a href="https://aventicumquest.ch">aventicumquest.ch</a> au moment de la commande. Tous les prix sont exprimés en francs suisses (CHF) et incluent la TVA applicable.</p>
-    <p>Le paiement est sécurisé et traité par <strong>Stripe</strong>. Les moyens de paiement acceptés sont la carte bancaire (Visa, Mastercard), TWINT et Apple Pay. Aucune donnée de paiement n'est stockée par le vendeur.</p>
-  </section>
-
-  <!-- 5 -->
-  <section id="livraison">
-    <div class="section-header">
-      <span class="section-num">ART. 5</span>
-      <h2>Livraison du code d'accès</h2>
-    </div>
-    <p>Le code d'accès est envoyé automatiquement par e-mail dans les <strong>5 minutes suivant la confirmation de paiement</strong>. Vérifiez vos courriers indésirables (spam) si vous ne recevez pas l'e-mail.</p>
-    <p>En cas de non-réception du code dans les 30 minutes suivant l'achat, contactez-nous à <a href="mailto:info@aventicumquest.ch">info@aventicumquest.ch</a> en indiquant votre adresse e-mail d'achat.</p>
-    <p>Le code est <strong>valable sans limitation de date</strong> à compter de sa délivrance. Il peut être utilisé à tout moment tant que le service est disponible.</p>
-  </section>
-
-  <!-- 6 -->
-  <section id="retractation">
-    <div class="section-header">
-      <span class="section-num">ART. 6</span>
-      <h2>Rétractation et remboursement</h2>
-    </div>
-    <p>Conformément à l'article 40d de la Loi fédérale suisse sur la protection des consommateurs et aux usages du commerce en ligne, le droit de rétractation ne s'applique pas aux <strong>contenus numériques fournis immédiatement après paiement</strong>, soit dès la réception du code d'accès.</p>
-    <p>Toutefois, en cas de <strong>problème technique avéré</strong> empêchant l'utilisation du service (code non fonctionnel, défaillance du service), le vendeur s'engage à proposer un remplacement du code ou un remboursement intégral, à sa discrétion, dans un délai de 5 jours ouvrables.</p>
-    <p>Les demandes de remboursement doivent être adressées à <a href="mailto:info@aventicumquest.ch">info@aventicumquest.ch</a> dans les 14 jours suivant l'achat.</p>
-  </section>
-
-  <!-- 7 -->
-  <section id="responsabilite">
-    <div class="section-header">
-      <span class="section-num">ART. 7</span>
-      <h2>Responsabilité et sécurité</h2>
-    </div>
-    <p>Le jeu se déroule dans l'espace public d'Avenches. Les participants sont responsables de leur propre sécurité et de celle des membres de leur groupe, en particulier des enfants. Il est recommandé de porter des chaussures adaptées à la marche en extérieur.</p>
-    <p>Le vendeur décline toute responsabilité en cas d'accident, blessure, perte ou dommage survenant lors de la pratique du jeu, dès lors que ceux-ci résultent d'un comportement imprudent ou contraire aux règles de sécurité élémentaires.</p>
-    <p>Le vendeur se réserve le droit de suspendre temporairement le service pour maintenance ou en cas de force majeure, sans que cela ne donne droit à indemnisation, sauf si la suspension est définitive et prolongée.</p>
-  </section>
-
-  <!-- 8 -->
-  <section id="propriete">
-    <div class="section-header">
-      <span class="section-num">ART. 8</span>
-      <h2>Propriété intellectuelle</h2>
-    </div>
-    <p>L'ensemble du contenu du jeu (textes, énigmes, images, design, code) est la propriété exclusive du vendeur et est protégé par le droit d'auteur suisse. Toute reproduction, diffusion ou exploitation commerciale sans autorisation écrite est interdite.</p>
-    <p>Le code d'accès est strictement personnel et ne peut être revendu, partagé publiquement ou utilisé à des fins commerciales.</p>
-  </section>
-
-  <!-- 9 -->
-  <section id="donnees">
-    <div class="section-header">
-      <span class="section-num">ART. 9</span>
-      <h2>Données personnelles</h2>
-    </div>
-    <p>Les données collectées lors de l'achat (prénom, adresse e-mail) sont utilisées uniquement pour l'envoi du code d'accès et, le cas échéant, pour le support client. Elles ne sont pas transmises à des tiers à des fins commerciales.</p>
-    <p>Conformément à la Loi fédérale suisse sur la protection des données (LPD), vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Demandes à adresser à <a href="mailto:info@aventicumquest.ch">info@aventicumquest.ch</a>.</p>
-    <p>Les paiements sont traités par Stripe Inc., soumis à sa propre politique de confidentialité disponible sur <a href="https://stripe.com/privacy" target="_blank" rel="noopener">stripe.com/privacy</a>.</p>
-  </section>
-
-  <!-- 10 -->
-  <section id="droit">
-    <div class="section-header">
-      <span class="section-num">ART. 10</span>
-      <h2>Droit applicable et litiges</h2>
-    </div>
-    <p>Les présentes conditions générales sont régies par le <strong>droit suisse</strong>. En cas de litige, les parties s'efforceront de trouver une solution amiable. À défaut, les tribunaux du canton de Vaud seront seuls compétents.</p>
-  </section>
-
-  <!-- 11 -->
-  <section id="contact">
-    <div class="section-header">
-      <span class="section-num">ART. 11</span>
-      <h2>Contact</h2>
-    </div>
-    <div class="info-box">
-      <p>Pour toute question relative à une commande ou au service :</p>
-      <p><strong>E-mail :</strong> <a href="mailto:info@aventicumquest.ch">info@aventicumquest.ch</a></p>
-      <p>Réponse garantie sous 48 heures ouvrables.</p>
-    </div>
-  </section>
-
-  <div class="sep"></div>
-
-  <p style="text-align:center;font-size:0.85rem;color:rgba(201,168,76,0.4);letter-spacing:0.08em">
-    En effectuant un achat sur aventicumquest.ch, vous acceptez sans réserve les présentes conditions.
-  </p>
-
-</div>
-
-<footer>
-  <a href="https://aventicumquest.ch">aventicumquest.ch</a> &nbsp;·&nbsp; Bjorn Vollenweider, Oleyres VD &nbsp;·&nbsp; <a href="mailto:info@aventicumquest.ch">info@aventicumquest.ch</a>
-</footer>
-
+  <script>document.getElementById('nav').classList.add('scrolled');</script>
 </body>
 </html>
